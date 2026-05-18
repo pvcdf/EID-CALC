@@ -318,7 +318,6 @@ def _derive_tramo_from_rut(rut_formatted: str) -> dict:
         "right_value": right_limit,
     }
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 #  VENTANA PRINCIPAL
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -556,7 +555,7 @@ class App(tk.Tk):
                 self.rut_dv_entry.focus_set()
 
     def _update_requirements_status(self):
-        """Actualizar la lista de requisitos en tiempo real según el contenido de las casillas."""
+        """Actualizar la lista de requisitos en tiempo real según el contenido de las casillas"""
         if not hasattr(self, 'req_rows'):
             return
         digits = [e.get().strip() for e in self.rut_digit_entries]
