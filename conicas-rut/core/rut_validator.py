@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 
 
 
@@ -111,4 +109,3 @@ def validate_rut(rut: str) -> dict:
         "v": v,
         "steps": steps
     }
->>>>>>> Stashed changes
