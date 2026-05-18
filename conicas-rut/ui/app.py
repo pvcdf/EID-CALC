@@ -4,6 +4,8 @@ Interfaz visual principal - Replicación exacta de la maqueta
 Flujo: Entrada RUT → Validación → Interfaz completa
 """
 
+import math
+import re
 import tkinter as tk
 from tkinter import ttk, font as tkfont
 import sys
@@ -108,46 +110,213 @@ def metric_card(parent, title, value, sub="", F=None):
     return c
 
 
-def _derive_demo_from_rut(rut_formatted: str) -> dict:
-    """Deriva valores demo a partir del RUT formateado.
-    Esto permite que la segunda interfaz cambie según el RUT ingresado.
-    """
-    # Extraer solo dígitos del RUT
-    import re
+def _normalize_rut_digits(rut_formatted: str) -> str:
     digits = re.sub(r"\D", "", rut_formatted or "")
-    if not digits:
-        digits = "12345678"
+    return digits if digits else "1234567"
 
-    # Use slices and sums to produce deterministic demo values
-    def g(i, length=2):
-        return int(digits[i:i+length]) if i + length <= len(digits) else int(digits[-2:])
 
-    A = round((g(0) % 9) + 0.5, 2)
-    B = round((g(2) % 7) + 0.2, 2)
-    C = - (g(4) % 20)
-    D = - (g(5) % 18)
-    E = (g(6) % 12)
+def _signed(value: float, precision: int = 2) -> str:
+    return f"+{abs(value):.{precision}f}" if value >= 0 else f"-{abs(value):.{precision}f}"
 
-    tipo = "Elipse" if A > B else "Hipérbola"
+
+def _signed_int(value: int) -> str:
+    return f"+{abs(value)}" if value >= 0 else f"-{abs(value)}"
+
+
+def _derive_demo_from_rut(rut_formatted: str) -> dict:
+    digits = _normalize_rut_digits(rut_formatted)
+    digits = digits[:8].ljust(8, "0")
+    values = [int(d) for d in digits]
+
+    A = 1.2 + (values[0] % 4) + (values[1] * 0.05)
+    B = 0.8 + (values[1] % 4) + (values[2] * 0.04)
+    if values[2] % 2:
+        B = -B
+
+    C = -((values[3] % 10) + 1) * (1 + (values[4] % 2))
+    D = -((values[4] % 9) + 1) * (1 + (values[5] % 2))
+    E = (values[5] % 10) - 4 + (values[6] % 3)
+    if values[7] % 2:
+        E += 2
+
+    h = -C / (2 * A)
+    k = -D / (2 * B)
+    constant = -E + A * h * h + B * k * k
+    if abs(constant) < 0.5:
+        constant = 1.2 if constant >= 0 else -1.2
+    if A * B > 0 and constant < 0:
+        constant = abs(constant) + 2.5
+
+    tipo = "Elipse" if A * B > 0 else "Hipérbola"
+    sign_x = "-" if h >= 0 else "+"
+    sign_y = "-" if k >= 0 else "+"
+
+    a2 = abs(constant / A)
+    b2 = abs(constant / B)
+    a = math.sqrt(max(a2, 0.1))
+    b = math.sqrt(max(b2, 0.1))
+    c_val = math.sqrt(abs(a * a - b * b)) if tipo == "Elipse" else math.sqrt(a * a + b * b)
+
+    if tipo == "Elipse":
+        canonica = (
+            f"(x {sign_x} {abs(h):.2f})² / {a2:.2f} + "
+            f"(y {sign_y} {abs(k):.2f})² / {b2:.2f} = 1"
+        )
+        if a2 >= b2:
+            vertices = f"({h:.2f} ± {a:.2f}, {k:.2f})"
+            focos = f"({h:.2f} ± {c_val:.2f}, {k:.2f})"
+        else:
+            vertices = f"({h:.2f}, {k:.2f} ± {a:.2f})"
+            focos = f"({h:.2f}, {k:.2f} ± {c_val:.2f})"
+    else:
+        if A > 0:
+            canonica = (
+                f"(x {sign_x} {abs(h):.2f})² / {a2:.2f} - "
+                f"(y {sign_y} {abs(k):.2f})² / {b2:.2f} = 1"
+            )
+            vertices = f"({h:.2f} ± {a:.2f}, {k:.2f})"
+            focos = f"({h:.2f} ± {c_val:.2f}, {k:.2f})"
+        else:
+            canonica = (
+                f"(y {sign_y} {abs(k):.2f})² / {a2:.2f} - "
+                f"(x {sign_x} {abs(h):.2f})² / {b2:.2f} = 1"
+            )
+            vertices = f"({h:.2f}, {k:.2f} ± {a:.2f})"
+            focos = f"({h:.2f}, {k:.2f} ± {c_val:.2f})"
+
+    if tipo == "Elipse":
+        centro = f"({h:.2f} , {k:.2f})"
+    else:
+        centro = f"({h:.2f} , {k:.2f})"
 
     demo = {
-        "rut": rut_formatted,
+        "rut": rut_formatted or "12.345.678-9",
         "valido": True,
-        "A": f"{A}",
-        "B": f"{B}",
+        "A": f"{A:.2f}",
+        "B": f"{B:.2f}",
         "C": f"{C}",
         "D": f"{D}",
         "E": f"{E}",
         "tipo": tipo,
-        "ecuacion": f"{A}x² + {B}y² {C:+}x {D:+}y + {E} = 0",
-        "canonica": "(x−h)² / a  +  (y−k)² / b  =  1",
-        "centro": "(h , k)",
-        "focos": "(h ± c , k)",
-        "vertices": "(...)",
-        "pasos_gen_can": ["1. Agrupar términos...", "2. Completar cuadrados..."] ,
-        "pasos_can_gen": ["1. Expandir...", "2. Reagrupar..."],
+        "ecuacion": f"{A:.2f}x² {_signed(B)}y² {_signed_int(C)}x {_signed_int(D)}y {_signed_int(E)} = 0",
+        "canonica": canonica,
+        "centro": centro,
+        "focos": focos,
+        "vertices": vertices,
+        "pasos_gen_can": [
+            f"1. Agrupar términos: {A:.2f}x² {_signed_int(C)}x {_signed(B)}y² {_signed_int(D)}y = {-E:.2f}",
+            f"2. Completar cuadrados en x e y para obtener centro {centro}",
+            f"3. Despejar el lado derecho: {constant:.2f}",
+            f"4. Normalizar y escribir forma canónica",
+        ],
+        "pasos_gen_can_details": [
+            "Para comenzar, aislamos los términos en x e y y mantenemos todos los constantes a la derecha. Esto permite formar los cuadrados perfectos.",
+            "Luego completamos el cuadrado en x e y añadiendo y restando los mismos valores dentro de cada grupo para obtener las expresiones (x−h)² y (y−k)².",
+            "Después, desplazamos la constante resultante al lado derecho de la ecuación para que la expresión quede igualada a un número.",
+            "Finalmente dividimos por ese número para convertir la ecuación en la forma canónica estándar y organizar los denominadores.",
+        ],
+        "pasos_can_gen": [
+            f"1. Expandir (x {sign_x} {abs(h):.2f})² y (y {sign_y} {abs(k):.2f})²",
+            f"2. Multiplicar por A={A:.2f} y B={B:.2f}",
+            f"3. Reagrupar términos para regresar a {A:.2f}x² {_signed(B)}y² {_signed_int(C)}x {_signed_int(D)}y {_signed_int(E)} = 0",
+            f"4. Verificar que la ecuación general coincida con la forma original",
+        ],
+        "pasos_can_gen_details": [
+            "Expandimos cada binomio cuadrado usando la fórmula (x±h)² = x² ± 2hx + h² y hacemos lo mismo con la variable y.",
+            "Multiplicamos el resultado por A y B para obtener los coeficientes correctos del polinomio y conservar la forma original.",
+            "Sumamos todos los términos semejantes y simplificamos, de modo que los términos en x², y², x y y vuelvan a formar la ecuación general.",
+            "Verificamos que el resultado coincida con la ecuación original, revisando signos y constante para asegurar la equivalencia.",
+        ],
+        "center_x": h,
+        "center_y": k,
+        "a2": a2,
+        "b2": b2,
+        "a": a,
+        "b": b,
     }
     return demo
+
+
+def _derive_tramo_from_rut(rut_formatted: str) -> dict:
+    digits = _normalize_rut_digits(rut_formatted)
+    digits = digits[:7].rjust(7, "0")
+    values = [int(d) for d in digits]
+
+    x_cut = 2 + (values[0] % 5)
+    m1 = 1 + (values[1] % 4)
+    b1 = -3 + (values[2] % 6)
+    m2 = m1 + (1 if values[3] % 2 == 0 else -1)
+    b2 = b1 + (values[4] % 5 - 2)
+
+    left_fn = lambda x: m1 * x + b1
+    right_fn = lambda x: m2 * x + b2
+    left_limit = left_fn(x_cut)
+    right_limit = right_fn(x_cut)
+    case_code = values[5] % 3
+
+    if case_code == 1:
+        # Continuidad: hacer coincidir ambos tramos en x_cut
+        b2 = left_limit - m2 * x_cut
+        right_fn = lambda x: m2 * x + b2
+        right_limit = right_fn(x_cut)
+        conclusion = f"Límite existe y coincide en x = {x_cut}. Función continua."
+        defined_at_cut = True
+        conclusion_type = "Continuidad"
+    elif case_code == 0:
+        # Discontinuidad removible: límites iguales, punto no definido
+        b2 = left_limit - m2 * x_cut
+        right_fn = lambda x: m2 * x + b2
+        right_limit = right_fn(x_cut)
+        conclusion = (
+            f"Límite existe ({left_limit:.3f}) pero x = {x_cut} no está definido. "
+            "Discontinuidad removible."
+        )
+        defined_at_cut = False
+        conclusion_type = "Discontinuidad removible"
+    else:
+        conclusion = (
+            f"Límite NO existe ({left_limit:.3f} ≠ {right_limit:.3f}). "
+            "Discontinuidad de salto."
+        )
+        defined_at_cut = True
+        conclusion_type = "Discontinuidad de salto"
+
+    lines = [
+        f"f(x) = {m1}x {_signed_int(b1)}  si x < {x_cut}",
+        f"f(x) = {m2}x {_signed_int(b2)}  si x ≥ {x_cut}",
+    ]
+
+    x_values = [x_cut - 1, x_cut - 0.1, x_cut - 0.01, x_cut - 0.001, None,
+                x_cut + 0.001, x_cut + 0.01, x_cut + 0.1, x_cut + 1]
+    table = []
+    for x in x_values:
+        if x is None:
+            table.append(("—", "—"))
+            continue
+        y = left_fn(x) if x < x_cut else right_fn(x)
+        table.append((f"{x:.3f}", f"{y:.3f}"))
+
+    lim_izq_str = f"lím x→{x_cut}⁻ f(x) = {left_limit:.3f}"
+    lim_der_str = f"lím x→{x_cut}⁺ f(x) = {right_limit:.3f}"
+    f_c = f"f({x_cut}) = {right_limit:.3f}" if defined_at_cut else f"f({x_cut}) no está definido"
+
+    return {
+        "caso": f"{conclusion_type}  (x = {x_cut})",
+        "funcion": lines,
+        "lim_izq": lim_izq_str,
+        "lim_der": lim_der_str,
+        "f_c": f_c,
+        "tabla": table,
+        "conclusion": conclusion,
+        "x_cut": x_cut,
+        "left_slope": m1,
+        "left_intercept": b1,
+        "right_slope": m2,
+        "right_intercept": b2,
+        "defined_at_cut": defined_at_cut,
+        "left_value": left_limit,
+        "right_value": right_limit,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -156,11 +325,30 @@ def _derive_demo_from_rut(rut_formatted: str) -> dict:
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
+
         self.title("CónicasRUT — MAT1186")
-        self.geometry("1200x750")
-        self.minsize(1100, 680)
+
+        # Tamaño de la ventana
+        window_width = 1850
+        window_height = 850
+
+        # Obtener tamaño de pantalla
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        # Calcular posición centrada
+        x = (screen_width // 2) - (window_width // 2)
+        y = (screen_height // 2) - (window_height // 2)
+
+        # Aplicar tamaño + posición
+        self.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+        # Tamaño mínimo permitido
+        self.minsize(1400, 780)
+
+        # Configuración general
         self.configure(bg=BG)
-        self.resizable(True, True)
+        self.resizable(False, False)
 
         self.F = setup_fonts()
         self.current_page = None
@@ -169,13 +357,13 @@ class App(tk.Tk):
         self.current_theme = "dark"
         self.validated_rut = None
 
-        # Detect Windows theme preference (safe fallback to dark)
+        # Detectar tema de Windows
         try:
             self.current_theme = self._detect_windows_theme()
         except Exception:
             self.current_theme = "dark"
-        self._apply_theme(self.current_theme)
 
+        self._apply_theme(self.current_theme)
         self._show_input_screen()
 
     def _detect_windows_theme(self):
@@ -183,11 +371,17 @@ class App(tk.Tk):
         Devuelve 'light' o 'dark'."""
         try:
             import winreg
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                                 r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+
+            key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+            )
+
             val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
             winreg.CloseKey(key)
+
             return "light" if val == 1 else "dark"
+
         except Exception:
             return "dark"
 
@@ -219,7 +413,7 @@ class App(tk.Tk):
         
         # Centro vertical
         center = tk.Frame(self.current_page, bg=BG)
-        center.place(relx=0.55, rely=0.5, anchor="center")
+        center.place(relx=0.5, rely=0.5, anchor="center")
         
         # Logo
         logo_frame = tk.Frame(center, bg=BG)
@@ -231,7 +425,7 @@ class App(tk.Tk):
         # Card de entrada
         input_card = card(center)
         # Make the input card larger and prevent it shrinking
-        input_card.configure(width=820, height=240)
+        input_card.configure(width=1100, height=340)
         input_card.pack(padx=40, pady=20)
         input_card.pack_propagate(False)
         
@@ -271,13 +465,21 @@ class App(tk.Tk):
         
         # Make button larger
         btn_frame = tk.Frame(input_card, bg=CARD)
-        btn_frame.pack(padx=20, pady=(8, 18), fill="x")
+        btn_frame.pack(padx=20, pady=(8, 8), fill="x")
         
         btn = tk.Button(btn_frame, text="Analizar", bg=ACCENT, fg=WHITE,
                         font=self.F["label"], bd=0, cursor="hand2",
                         activebackground=ACCENT2, activeforeground=BG,
                         command=self._validate_and_show)
-        btn.pack(ipady=10, ipadx=28)
+        btn.pack(ipady=12, ipadx=30)
+        
+        verify_frame = tk.Frame(input_card, bg=CARD)
+        verify_frame.pack(padx=20, pady=(4, 12), fill="x")
+        verify_btn = tk.Button(verify_frame, text="Verificar", bg=PANEL, fg=WHITE,
+                               font=self.F["label"], bd=0, cursor="hand2",
+                               activebackground=ACCENT2, activeforeground=BG,
+                               command=self._verify_rut)
+        verify_btn.pack(ipady=10, ipadx=26)
         
         status_frame = tk.Frame(input_card, bg=CARD)
         status_frame.pack(padx=20, pady=(0, 12), fill="x")
@@ -293,15 +495,33 @@ class App(tk.Tk):
         if error:
             self.status_label.config(text=error, fg=RED)
             return
-        
+
         validation = validate_rut(rut)
         if not validation["valid"]:
             self.status_label.config(text=validation["error"], fg=RED)
+            self.rut_status_badge.config(text="✖ RUT no válido", fg=RED)
             return
-        
+
         self.validated_rut = validation["rut_formatted"]
         self.status_label.config(text=f"✓ RUT válido: {self.validated_rut}", fg=GREEN)
+        self.rut_status_badge.config(text=f"✓ RUT válido: {self.validated_rut}", fg=GREEN)
         self.after(600, self._show_main_interface)
+
+    def _verify_rut(self):
+        rut, error = self._get_rut_from_boxes()
+        if error:
+            self.status_label.config(text=error, fg=RED)
+            self.rut_status_badge.config(text="✖ RUT no válido", fg=RED)
+            return
+
+        validation = validate_rut(rut)
+        if not validation["valid"]:
+            self.status_label.config(text=validation["error"], fg=RED)
+            self.rut_status_badge.config(text="✖ RUT no válido", fg=RED)
+            return
+
+        self.status_label.config(text=f"✓ RUT válido: {validation['rut_formatted']}", fg=GREEN)
+        self.rut_status_badge.config(text=f"✓ RUT válido: {validation['rut_formatted']}", fg=GREEN)
 
     def _restrict_digit(self, event, is_dv=False):
         widget = event.widget
@@ -393,6 +613,21 @@ class App(tk.Tk):
             self.status_label.config(text=first_error, fg=RED)
         else:
             self.status_label.config(text="", fg=GREEN)
+
+    def _update_rut_validation_badge(self):
+        if not hasattr(self, 'rut_status_badge'):
+            return
+        rut, error = self._get_rut_from_boxes()
+        if rut and not error:
+            validation = validate_rut(rut)
+            if validation["valid"]:
+                self.rut_status_badge.config(text=f"✓ RUT válido: {validation['rut_formatted']}", fg=GREEN)
+                self.status_label.config(text="", fg=GREEN)
+            else:
+                self.rut_status_badge.config(text="✖ RUT no válido", fg=RED)
+                self.status_label.config(text=validation.get("error", "RUT inválido"), fg=RED)
+        else:
+            self.rut_status_badge.config(text="• RUT no validado", fg=GRAY)
 
     def _get_rut_from_boxes(self):
         digits = [entry.get().strip() for entry in self.rut_digit_entries]
@@ -638,58 +873,60 @@ class PageConica(tk.Frame):
     def __init__(self, parent, F):
         super().__init__(parent, bg=BG)
         self.F = F
-        # Datos demo (en futuro vendrán del core)
-        self.demo = {
-            "rut":        "12.345.678-9",
-            "valido":     True,
-            "A":  "1.44",
-            "B":  "0.78",
-            "C":  "-11",
-            "D":  "-15",
-            "E":  "9",
-            "tipo":       "Elipse",
-            "ecuacion":   "1.44x² + 0.78y² − 11x − 15y + 9 = 0",
-            "canonica":   "(x−3.8)² / 6.9  +  (y−9.6)² / 12.8  =  1",
-            "centro":     "(3.8 , 9.6)",
-            "focos":      "(3.8 ± 2.5 , 9.6)",
-            "vertices":   "(1.2 , 9.6)  y  (6.4 , 9.6)",
-            "pasos_gen_can": [
-                "1. Agrupar términos en x e y:",
-                "   1.44(x² − 7.64x) + 0.78(y² − 19.2y) = −9",
-                "2. Completar cuadrado en x:",
-                "   1.44(x − 3.8)² − 20.8",
-                "3. Completar cuadrado en y:",
-                "   0.78(y − 9.6)² − 71.9",
-                "4. Despejar e igualar a 1:",
-                "   (x−3.8)²/6.9 + (y−9.6)²/12.8 = 1  ✓",
-            ],
-            "pasos_can_gen": [
-                "1. Expandir (x−3.8)² = x² − 7.6x + 14.44",
-                "2. Expandir (y−9.6)² = y² − 19.2y + 92.16",
-                "3. Multiplicar por A=1.44 y B=0.78",
-                "4. Reagrupar todos los términos:",
-                "   1.44x² + 0.78y² − 11x − 15y + 9 = 0  ✓",
-            ],
-        }
+        self.demo = _derive_demo_from_rut("12.345.678-9")
+        self.rut_error = tk.StringVar(value="")
         self._build()
 
     def update_with_rut(self, rut_formatted: str):
         """Re-genera la vista usando datos derivados del RUT."""
         try:
             self.demo = _derive_demo_from_rut(rut_formatted)
-            # Rebuild UI to reflect new demo data
+            self.rut_var.set(self.demo["rut"])
+            self.rut_error.set("")
             for ch in self.winfo_children():
                 ch.destroy()
             self._build()
         except Exception:
             pass
 
+    def _analyze_rut(self):
+        rut = self.rut_var.get().strip()
+        rut = self._clean_page_rut(rut)
+        self.rut_var.set(rut)
+        result = validate_rut(rut)
+        if not result["valid"]:
+            self.rut_error.set(result.get("error", "RUT inválido"))
+            self.rut_error_label.config(fg=RED)
+            return
+        self.rut_error.set(f"✓ RUT válido: {result['rut_formatted']}")
+        self.rut_error_label.config(fg=GREEN)
+        self.update_with_rut(result["rut_formatted"])
+
+    def _clean_page_rut(self, text: str) -> str:
+        text = text.strip().upper()
+        text = re.sub(r"[^0-9K-]", "", text)
+        parts = text.split("-")
+        main = parts[0] if parts else ""
+        dv = parts[1] if len(parts) > 1 else ""
+        main = re.sub(r"\D", "", main)[:8]
+        dv = dv[:1].upper()
+        if dv and dv not in "0123456789K":
+            dv = ""
+        if dv:
+            return f"{main}-{dv}"
+        return main
+
+    def _sanitize_page_rut_input(self):
+        cleaned = self._clean_page_rut(self.rut_var.get())
+        if cleaned != self.rut_var.get():
+            self.rut_var.set(cleaned)
+
     def _build(self):
         root = tk.Frame(self, bg=BG)
         root.pack(fill="both", expand=True, padx=16, pady=12)
         
         # layout: sidebar izq | contenido der
-        left = tk.Frame(root, bg=BG, width=290)
+        left = tk.Frame(root, bg=BG, width=340)
         left.pack(side="left", fill="y")
         left.pack_propagate(False)
         
@@ -719,15 +956,21 @@ class PageConica(tk.Frame):
                      font=self.F["mono"], bd=0, relief="flat",
                      highlightbackground=BORDER, highlightthickness=1)
         e.pack(side="left", fill="x", expand=True, ipady=6, padx=(0, 6))
-        
+        e.bind("<Return>", lambda ev: self._analyze_rut())
+        e.bind("<KeyRelease>", lambda ev: self._sanitize_page_rut_input())
+
         btn = tk.Button(entry_row, text="Analizar", bg=ACCENT, fg=WHITE,
                         font=self.F["small"], bd=0, cursor="hand2",
                         activebackground=ACCENT2, activeforeground=BG,
-                        padx=10, pady=6)
+                        padx=10, pady=6, command=self._analyze_rut)
         btn.pack(side="left")
         
+        self.rut_error_label = tk.Label(rut_card, textvariable=self.rut_error, bg=CARD,
+                                        fg=GREEN, font=self.F["small"], anchor="w")
+        self.rut_error_label.pack(fill="x", padx=12, pady=(4, 6))
+        
         badge_row = tk.Frame(rut_card, bg=CARD)
-        badge_row.pack(fill="x", padx=10, pady=(4, 10))
+        badge_row.pack(fill="x", padx=10, pady=(0, 10))
         badge(badge_row, "✓  RUT válido", GREEN, CARD).pack(side="left", padx=(0, 6))
         badge(badge_row, self.demo["tipo"], ACCENT, CARD).pack(side="left")
         
@@ -798,77 +1041,124 @@ class PageConica(tk.Frame):
         self.canvas_plot.bind("<Configure>", lambda e: self._draw_plot())
 
     def _draw_plot(self):
-        """Dibujar gráfico con elipse, focos y vértices"""
+        """Dibujar gráfico con la cónica generada desde el RUT."""
         c = self.canvas_plot
         c.delete("all")
         w = c.winfo_width()
         h = c.winfo_height()
         if w < 10 or h < 10:
             return
-        
-        cx, cy = w // 2, h // 2
-        scale = min(w, h) // 10
-        
-        # Grid
+
+        # Grid and axes
+        padding = 20
         for i in range(-10, 11):
-            c.create_line(cx + i * scale, 0, cx + i * scale, h, fill=BORDER, width=0.5)
-            c.create_line(0, cy + i * scale, w, cy + i * scale, fill=BORDER, width=0.5)
-        
-        # Ejes
-        c.create_line(0, cy, w, cy, fill=GRAY, width=1)
-        c.create_line(cx, 0, cx, h, fill=GRAY, width=1)
-        c.create_text(w - 12, cy - 10, text="x", fill=GRAY, font=self.F["small"])
-        c.create_text(cx + 10, 12, text="y", fill=GRAY, font=self.F["small"])
-        
-        # Ticks
-        for i in range(-8, 9):
-            if i != 0:
-                c.create_line(cx + i * scale - 2, cy - 2, cx + i * scale + 2, cy + 2, fill=GRAY, width=0.5)
-                c.create_line(cx - 2, cy + i * scale - 2, cx + 2, cy + i * scale + 2, fill=GRAY, width=0.5)
-                c.create_text(cx + i * scale, cy + 14, text=str(i), fill=GRAY, font=self.F["small"])
-                c.create_text(cx - 14, cy + i * scale, text=str(-i), fill=GRAY, font=self.F["small"])
-        
-        # Elipse demo (parameters derived from demo data if available)
+            x = padding + (w - 2 * padding) * (i + 10) / 20
+            y = padding + (h - 2 * padding) * (i + 10) / 20
+            c.create_line(x, padding, x, h - padding, fill=BORDER, width=0.5)
+            c.create_line(padding, y, w - padding, y, fill=BORDER, width=0.5)
+
+        c.create_line(padding, h // 2, w - padding, h // 2, fill=GRAY, width=1)
+        c.create_line(w // 2, padding, w // 2, h - padding, fill=GRAY, width=1)
+        c.create_text(w - padding, h // 2 - 12, text="x", fill=GRAY, font=self.F["small"])
+        c.create_text(w // 2 + 12, padding + 4, text="y", fill=GRAY, font=self.F["small"])
+
         try:
             A = float(self.demo.get("A", 1.0))
             B = float(self.demo.get("B", 1.0))
+            C = float(self.demo.get("C", 0.0))
             D = float(self.demo.get("D", 0.0))
             E = float(self.demo.get("E", 0.0))
         except Exception:
-            A, B, D, E = 1.0, 1.0, 0.0, 0.0
+            A, B, C, D, E = 1.0, 1.0, 0.0, 0.0, 0.0
 
-        # center offset influenced by D/E
-        ox = cx - int(scale * (0.5 + (D % 3) * 0.1))
-        oy = cy + int(scale * (0.3 + (E % 3) * 0.1))
-        # radii influenced by A/B
-        ra = max(10, int(scale * (1.8 + A * 0.6)))
-        rb = max(8, int(scale * (1.2 + B * 0.5)))
+        hcen = -C / (2 * A)
+        kcen = -D / (2 * B)
+        constant = -E + A * hcen * hcen + B * kcen * kcen
+        if abs(constant) < 0.5:
+            constant = 1.2
 
-        # Sombra
-        c.create_oval(ox - ra + 4, oy - rb + 4, ox + ra + 4, oy + rb + 4,
-                      outline="", fill="#2E1D60", width=0)
-        # Elipse
-        fill_col = "#1C1545" if BG == DARK_THEME["BG"] else "#EDE7FF"
-        c.create_oval(ox - ra, oy - rb, ox + ra, oy + rb,
-                      outline=ACCENT, fill=fill_col, width=2)
+        a2 = abs(constant / A)
+        b2 = abs(constant / B)
+        a = math.sqrt(max(a2, 0.1))
+        b = math.sqrt(max(b2, 0.1))
+
+        x_min = hcen - max(6, a * 1.8)
+        x_max = hcen + max(6, a * 1.8)
+        y_min = kcen - max(4, b * 1.8)
+        y_max = kcen + max(4, b * 1.8)
+
+        def px(value):
+            return int(padding + (value - x_min) / (x_max - x_min) * (w - 2 * padding))
+
+        def py(value):
+            return int(h - padding - (value - y_min) / (y_max - y_min) * (h - 2 * padding))
+
+        conic_type = self.demo.get("tipo", "Elipse")
+        coords = []
+        if conic_type == "Elipse":
+            for deg in range(0, 361, 4):
+                theta = math.radians(deg)
+                x = hcen + a * math.cos(theta)
+                y = kcen + b * math.sin(theta)
+                coords.extend([px(x), py(y)])
+            if len(coords) > 4:
+                c.create_line(coords, fill=ACCENT, width=2, smooth=True)
+        else:
+            if A > 0:
+                for branch in (-1, 1):
+                    pts = []
+                    for t in [i * 0.15 + 0.5 for i in range(40)]:
+                        x = hcen + branch * a * math.cosh(t)
+                        y = kcen + b * math.sinh(t)
+                        if x_min <= x <= x_max and y_min <= y <= y_max:
+                            pts.extend([px(x), py(y)])
+                    if len(pts) > 4:
+                        c.create_line(pts, fill=ACCENT, width=2, smooth=True)
+            else:
+                for branch in (-1, 1):
+                    pts = []
+                    for t in [i * 0.15 + 0.5 for i in range(40)]:
+                        x = hcen + b * math.sinh(t)
+                        y = kcen + branch * a * math.cosh(t)
+                        if x_min <= x <= x_max and y_min <= y <= y_max:
+                            pts.extend([px(x), py(y)])
+                    if len(pts) > 4:
+                        c.create_line(pts, fill=ACCENT, width=2, smooth=True)
 
         # Centro
-        c.create_oval(ox - 5, oy - 5, ox + 5, oy + 5, fill=ACCENT, outline="")
-        c.create_text(ox + 12, oy - 12, text="C", fill=ACCENT2, font=self.F["small"])
+        c.create_oval(px(hcen) - 4, py(kcen) - 4, px(hcen) + 4, py(kcen) + 4,
+                      fill=ACCENT, outline="")
+        c.create_text(px(hcen) + 12, py(kcen) - 12, text="C", fill=ACCENT2, font=self.F["small"])
 
-        # Focos
-        c_dist = int(scale * (1.4 + (A - B) * 0.2))
-        for fx, label_text in [(ox - c_dist, "F₂"), (ox + c_dist, "F₁")]:
-            c.create_oval(fx - 4, oy - 4, fx + 4, oy + 4, fill=YELLOW, outline="")
-            c.create_text(fx, oy - 14, text=label_text, fill=YELLOW, font=self.F["small"])
+        if conic_type == "Elipse":
+            c_val = math.sqrt(abs(a * a - b * b))
+            if a2 >= b2:
+                foci = [(hcen - c_val, kcen), (hcen + c_val, kcen)]
+                vertices = [(hcen - a, kcen), (hcen + a, kcen)]
+            else:
+                foci = [(hcen, kcen - c_val), (hcen, kcen + c_val)]
+                vertices = [(hcen, kcen - a), (hcen, kcen + a)]
+        else:
+            c_val = math.sqrt(a * a + b * b)
+            if A > 0:
+                foci = [(hcen - c_val, kcen), (hcen + c_val, kcen)]
+                vertices = [(hcen - a, kcen), (hcen + a, kcen)]
+            else:
+                foci = [(hcen, kcen - c_val), (hcen, kcen + c_val)]
+                vertices = [(hcen, kcen - a), (hcen, kcen + a)]
 
-        # Vértices
-        for vx, label_text in [(ox - ra, "V₁"), (ox + ra, "V₂")]:
-            c.create_oval(vx - 4, oy - 4, vx + 4, oy + 4, fill=GREEN, outline="")
-            c.create_text(vx, oy + 14, text=label_text, fill=GREEN, font=self.F["small"])
-        
+        for fx, fy in foci:
+            c.create_oval(px(fx) - 4, py(fy) - 4, px(fx) + 4, py(fy) + 4,
+                          fill=YELLOW, outline="")
+            c.create_text(px(fx), py(fy) - 12, text="F", fill=YELLOW, font=self.F["small"])
+
+        for vx, vy in vertices:
+            c.create_oval(px(vx) - 4, py(vy) - 4, px(vx) + 4, py(vy) + 4,
+                          fill=GREEN, outline="")
+            c.create_text(px(vx), py(vy) + 12, text="V", fill=GREEN, font=self.F["small"])
+
         # Leyenda
-        items = [("━", ACCENT, "Elipse"),
+        items = [("━", ACCENT, conic_type),
                  ("●", ACCENT2, "Centro"),
                  ("●", YELLOW, "Focos"),
                  ("●", GREEN, "Vértices")]
@@ -895,20 +1185,55 @@ class PageConica(tk.Frame):
                   background=[("selected", ACCENT)],
                   foreground=[("selected", WHITE)])
         
-        for title, pasos in [
-            ("General → Canónica", self.demo["pasos_gen_can"]),
-            ("Canónica → General", self.demo["pasos_can_gen"]),
+        for title, pasos, details in [
+            ("General → Canónica", self.demo["pasos_gen_can"], self.demo["pasos_gen_can_details"]),
+            ("Canónica → General", self.demo["pasos_can_gen"], self.demo["pasos_can_gen_details"]),
         ]:
             tab = tk.Frame(nb, bg=CARD)
             nb.add(tab, text=title)
-            
-            text_frame = tk.Frame(tab, bg=CARD)
-            text_frame.pack(fill="both", expand=True, padx=10, pady=10)
-            
-            for paso in pasos:
-                tk.Label(text_frame, text=paso, bg=CARD, fg=WHITE if paso.startswith(("1", "2", "3", "4")) else ACCENT2,
-                         font=self.F["mono_sm"], justify="left", anchor="w").pack(
-                    fill="x", pady=2)
+
+            scroll_canvas = tk.Canvas(tab, bg=CARD, bd=0, highlightthickness=0)
+            scrollbar = tk.Scrollbar(tab, orient="vertical", command=scroll_canvas.yview)
+            scroll_canvas.configure(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side="right", fill="y")
+            scroll_canvas.pack(side="left", fill="both", expand=True)
+
+            inner = tk.Frame(scroll_canvas, bg=CARD)
+            scroll_canvas.create_window((0, 0), window=inner, anchor="nw")
+
+            def _on_frame_config(event, canvas=scroll_canvas):
+                canvas.configure(scrollregion=canvas.bbox("all"))
+
+            inner.bind("<Configure>", _on_frame_config)
+
+            for paso, detail in zip(pasos, details):
+                row = tk.Frame(inner, bg=CARD, highlightbackground=ACCENT, highlightthickness=1)
+                row.pack(fill="x", pady=6, padx=6)
+
+                header = tk.Frame(row, bg=CARD)
+                header.pack(fill="x", padx=8, pady=8)
+                tk.Label(header, text=paso, bg=CARD, fg=WHITE,
+                         font=self.F["mono_sm"], justify="left", anchor="w").pack(side="left", fill="x", expand=True)
+
+                toggle_btn = tk.Button(header, text="▾ Desarrollo del paso", bg=PANEL,
+                                       fg=WHITE, font=self.F["small"], bd=0, cursor="hand2",
+                                       activebackground=ACCENT2, activeforeground=BG)
+                toggle_btn.pack(side="right")
+
+                detail_frame = tk.Frame(row, bg=PANEL)
+                detail_label = tk.Label(detail_frame, text=detail, bg=PANEL, fg=WHITE,
+                                        font=self.F["mono_sm"], justify="left", anchor="w",
+                                        wraplength=760)
+                detail_label.pack(fill="x", padx=10, pady=10)
+                detail_frame.pack_forget()
+
+                def _toggle(frame=detail_frame):
+                    if frame.winfo_ismapped():
+                        frame.pack_forget()
+                    else:
+                        frame.pack(fill="x", padx=8, pady=(0, 8))
+
+                toggle_btn.config(command=_toggle)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -918,43 +1243,13 @@ class PageTramos(tk.Frame):
     def __init__(self, parent, F):
         super().__init__(parent, bg=BG)
         self.F = F
-        self.demo_tramo = {
-            "caso":     "Discontinuidad removible  (d₈ = 8, múltiplo de 3)",
-            "funcion":  ["f(x) = (x−3)(x+1) / (x−3)   si x < 3",
-                         "f(x) = x + 4                  si x ≥ 3"],
-            "lim_izq":  "lím x→3⁻  f(x) = 3 + 1 = 4",
-            "lim_der":  "lím x→3⁺  f(x) = 3 + 4 = 7",
-            "tabla": [
-                ("x", "f(x)"),
-                ("2.000", "3.000"),
-                ("2.900", "3.900"),
-                ("2.990", "3.990"),
-                ("2.999", "3.999"),
-                ("—", "—"),
-                ("3.001", "7.001"),
-                ("3.010", "7.010"),
-                ("3.100", "7.100"),
-                ("4.000", "8.000"),
-            ],
-            "conclusion": "Límite NO existe (límites laterales distintos)\nDiscontinuidad de SALTO en x = 3",
-        }
+        self.demo_tramo = _derive_tramo_from_rut("12.345.678-9")
         self._build()
 
     def update_with_rut(self, rut_formatted: str):
         """Update demo_tramo based on provided RUT and rebuild UI."""
         try:
-            # For demo purposes, change the case string based on last digit
-            import re
-            digits = re.sub(r"\D", "", rut_formatted or "")
-            last = int(digits[-1]) if digits else 0
-            if last % 3 == 0:
-                caso = "Discontinuidad removible"
-            elif last % 2 == 0:
-                caso = "Continuidad"
-            else:
-                caso = "Discontinuidad de salto"
-            self.demo_tramo["caso"] = f"{caso}  (d = {last})"
-            self.demo_tramo["last_digit"] = last
+            self.demo_tramo = _derive_tramo_from_rut(rut_formatted)
             for ch in self.winfo_children():
                 ch.destroy()
             self._build()
@@ -965,7 +1260,7 @@ class PageTramos(tk.Frame):
         root = tk.Frame(self, bg=BG)
         root.pack(fill="both", expand=True, padx=16, pady=12)
         
-        left = tk.Frame(root, bg=BG, width=290)
+        left = tk.Frame(root, bg=BG, width=340)
         left.pack(side="left", fill="y")
         left.pack_propagate(False)
         
@@ -1045,70 +1340,81 @@ class PageTramos(tk.Frame):
         h = c.winfo_height()
         if w < 10 or h < 10:
             return
-        
-        xmin, xmax = -3, 10
-        ymin, ymax = -2, 14
-        last = self.demo_tramo.get('last_digit', 3)
-        a = 3 + (last % 4)
-        
+
+        x_cut = self.demo_tramo.get("x_cut", 3)
+        m1 = self.demo_tramo.get("left_slope", 1)
+        b1 = self.demo_tramo.get("left_intercept", 1)
+        m2 = self.demo_tramo.get("right_slope", 2)
+        b2 = self.demo_tramo.get("right_intercept", 4)
+        left_value = self.demo_tramo.get("left_value", 0)
+        right_value = self.demo_tramo.get("right_value", 0)
+        defined_at_cut = self.demo_tramo.get("defined_at_cut", True)
+
+        padding = 30
+        x_min = x_cut - 5
+        x_max = x_cut + 7
+        y_values = [m1 * x_min + b1, m1 * (x_cut - 0.5) + b1,
+                    m2 * (x_cut + 0.5) + b2, m2 * x_max + b2,
+                    left_value, right_value]
+        y_min = min(y_values) - 3
+        y_max = max(y_values) + 3
+
         def px(x_val):
-            return int((x_val - xmin) / (xmax - xmin) * w)
+            return int(padding + (x_val - x_min) / (x_max - x_min) * (w - 2 * padding))
+
         def py(y_val):
-            return int(h - (y_val - ymin) / (ymax - ymin) * h)
-        
+            return int(h - padding - (y_val - y_min) / (y_max - y_min) * (h - 2 * padding))
+
         # Grid
-        for i in range(xmin, xmax + 1):
+        for i in range(int(x_min), int(x_max) + 1):
             c.create_line(px(i), 0, px(i), h, fill=BORDER, width=0.5)
-        for j in range(ymin, ymax + 1):
+        for j in range(int(math.floor(y_min)), int(math.ceil(y_max)) + 1):
             c.create_line(0, py(j), w, py(j), fill=BORDER, width=0.5)
-        
+
         # Ejes
         c.create_line(px(0), 0, px(0), h, fill=GRAY, width=1)
         c.create_line(0, py(0), w, py(0), fill=GRAY, width=1)
-        
-        # Etiquetas eje x
-        for i in range(xmin, xmax + 1, 2):
+
+        for i in range(int(x_min), int(x_max) + 1, 2):
             c.create_text(px(i), py(0) + 14, text=str(i), fill=GRAY, font=self.F["small"])
-        
-        # Asíntota vertical
-        c.create_line(px(a), 0, px(a), h, fill=RED, dash=(6, 4), width=1)
-        c.create_text(px(a) + 10, 14, text=f"x={a}", fill=RED, font=self.F["small"])
-        
-        # Tramo izquierdo: f(x) = x+1 (x < 3)
-        pts = []
-        for i in range(300):
-            x = xmin + (i / 300) * (a - xmin)
-            y = x + 1
-            if ymin <= y <= ymax:
-                pts.append((px(x), py(y)))
-        if len(pts) >= 4:
-            c.create_line(*pts, fill=GREEN, width=2)
-        
-        # Punto hueco en x=3, y=4
-        hx, hy = px(a), py(a + 1)
-        c.create_oval(hx - 5, hy - 5, hx + 5, hy + 5,
+
+        c.create_line(px(x_cut), 0, px(x_cut), h, fill=RED, dash=(6, 4), width=1)
+        c.create_text(px(x_cut) + 10, padding + 12, text=f"x={x_cut}", fill=RED, font=self.F["small"])
+
+        # Left branch
+        left_pts = []
+        for i in range(200):
+            x = x_min + (x_cut - x_min) * i / 199
+            y = m1 * x + b1
+            if y_min <= y <= y_max:
+                left_pts.extend([px(x), py(y)])
+        if len(left_pts) > 4:
+            c.create_line(left_pts, fill=GREEN, width=2, smooth=True)
+
+        # Right branch
+        right_pts = []
+        for i in range(200):
+            x = x_cut + (x_max - x_cut) * i / 199
+            y = m2 * x + b2
+            if y_min <= y <= y_max:
+                right_pts.extend([px(x), py(y)])
+        if len(right_pts) > 4:
+            c.create_line(right_pts, fill=YELLOW, width=2, smooth=True)
+
+        # Points at x_cut
+        open_y = left_value
+        solid_y = right_value if defined_at_cut else None
+        c.create_oval(px(x_cut) - 5, py(open_y) - 5, px(x_cut) + 5, py(open_y) + 5,
                       outline=GREEN, fill=PLOT_BG, width=2)
-        
-        # Tramo derecho: f(x) = x+4 (x >= 3)
-        pts2 = []
-        for i in range(300):
-            x = a + (i / 300) * (xmax - a)
-            y = x + 4
-            if ymin <= y <= ymax:
-                pts2.append((px(x), py(y)))
-        if len(pts2) >= 4:
-            c.create_line(*pts2, fill=YELLOW, width=2)
-        
-        # Punto sólido en x=3, y=7
-        sx, sy = px(a), py(a + 4)
-        c.create_oval(sx - 5, sy - 5, sx + 5, sy + 5, fill=YELLOW, outline="")
-        
-        # Leyenda
-        items = [("━", GREEN, "x < 3  →  x+1"),
-                 ("━", YELLOW, "x ≥ 3  →  x+4"),
-                 ("○", GREEN, "punto hueco"),
-                 ("●", YELLOW, "punto definido"),
-                 ("┅", RED, "x = 3  (discontinuidad)")]
+        if defined_at_cut:
+            c.create_oval(px(x_cut) - 5, py(solid_y) - 5, px(x_cut) + 5, py(solid_y) + 5,
+                          fill=YELLOW, outline="")
+
+        items = [("━", GREEN, f"x < {x_cut}  →  {m1}x {_signed_int(int(b1))}"),
+                 ("━", YELLOW, f"x ≥ {x_cut}  →  {m2}x {_signed_int(int(b2))}"),
+                 ("○", GREEN, "punto hueco" if not defined_at_cut else "límite izquierdo"),
+                 ("●", YELLOW, "punto definido" if defined_at_cut else "límite derecho"),
+                 ("┅", RED, f"x = {x_cut}  (discontinuidad)")]
         lx, ly = 10, h - 20
         for sym, col, txt in reversed(items):
             c.create_text(lx, ly, text=sym, fill=col, font=self.F["label"], anchor="w")
@@ -1123,7 +1429,8 @@ class PageTramos(tk.Frame):
         # Tabla
         frame_t = card(right)
         frame_t.pack(fill="x")
-        tk.Label(frame_t, text="Tabla de valores cercanos a x = 3", bg=CARD,
+        x_cut = self.demo_tramo.get("x_cut", 3)
+        tk.Label(frame_t, text=f"Tabla de valores cercanos a x = {x_cut}", bg=CARD,
                  fg=WHITE, font=self.F["label"], anchor="w").pack(
             fill="x", padx=14, pady=(10, 4))
         
