@@ -1,6 +1,5 @@
 
 
-
 def clean_rut(rut: str) -> str:
     """Elimina puntos, guiones y espacios. Convierte DV a mayúscula."""
     rut = rut.replace(".", "").replace("-", "").replace(" ", "")
