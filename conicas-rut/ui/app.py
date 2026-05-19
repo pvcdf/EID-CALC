@@ -1,16 +1,4 @@
-﻿"""
-CónicasRUT — MAT1186
-app.py: Punto de entrada de la aplicación.
-
-Responsabilidades:
-  - Crear la ventana principal
-  - Mostrar la pantalla de ingreso de RUT
-  - Navegar entre módulos (Cónicas / Funciones por Tramos)
-  - Controlar el tema claro / oscuro
-
-NO contiene: lógica matemática, validaciones, gráficos ni cálculos.
-"""
-
+﻿
 import sys
 import os
 
@@ -51,7 +39,7 @@ LIGHT = {
     "PLOT_BG": "#FFFFFF",
 }
 
-# Colores activos (se actualizan al cambiar tema)
+# Colores activos
 C = dict(DARK)
 
 
