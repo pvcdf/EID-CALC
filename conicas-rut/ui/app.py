@@ -44,6 +44,7 @@ LIGHT = {
 C = dict(DARK)
 
 
+# Crea las fuentes utilizadas por la interfaz.
 def _make_fonts():
     return {
         "title":   tkfont.Font(family="Courier New", size=18, weight="bold"),
@@ -56,6 +57,7 @@ def _make_fonts():
     }
 
 
+# Estado de colores y fuentes que define el tema actual de la aplicación.
 class ThemeState:
     def __init__(self, colors, fonts, name="dark"):
         self.name = name
@@ -77,6 +79,7 @@ class ThemeState:
         self.plot = colors["PLOT_BG"]
 
 
+# Ventana principal de la aplicación y control de la navegación entre pantallas.
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -87,7 +90,7 @@ class App(tk.Tk):
         self.title("CónicasRUT — MAT1186")
         self.configure(bg=C["BG"])
         self.resizable(False, False)
-        self._center_window(1200, 750)
+        self._center_window(1600, 850)
 
         self.validated_rut = None
         self.pages = {}
@@ -98,6 +101,7 @@ class App(tk.Tk):
         self._show_input_screen()
 
     # ── Utilidades ────────────────────────────────────────────────────────────
+    # Centra la ventana principal en la pantalla.
     def _center_window(self, width, height):
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
@@ -105,6 +109,7 @@ class App(tk.Tk):
         y  = (sh - height) // 2
         self.geometry(f"{width}x{height}+{x}+{y}")
 
+    # Cambia el tema oscuro/claro sin reiniciar la navegación principal.
     def _toggle_theme(self):
         """Alterna entre oscuro y claro, y actualiza solo el estilo visible."""
         global C
@@ -123,11 +128,13 @@ class App(tk.Tk):
         else:
             self._refresh_main_theme()
 
+    # Devuelve el icono del botón de modo según el tema activo.
     def _theme_icon(self):
         """Luna = modo oscuro activo  /  Sol = modo claro activo."""
         return "☾" if self.theme.name == "dark" else "☀"
 
     # ── Pantalla de ingreso de RUT ────────────────────────────────────────────
+    # Construye la vista inicial donde el usuario ingresa su RUT.
     def _show_input_screen(self):
         if hasattr(self, "_root_frame"):
             self._root_frame.destroy()
@@ -178,10 +185,12 @@ class App(tk.Tk):
         vcmd = self.register(self._validate_rut_entry)
         self._rut_entry.configure(validate="key", validatecommand=(vcmd, "%P"))
 
+    # Limpia el texto de ayuda cuando el campo RUT recibe foco.
     def _clear_placeholder(self, _event):
         if self._rut_entry.get().startswith("Ej:"):
             self._rut_entry.delete(0, "end")
 
+    # Valida el ingreso del RUT en tiempo real para limitar el formato.
     def _validate_rut_entry(self, proposed):
         if proposed == "" or proposed.startswith("Ej:"):
             return True
@@ -196,6 +205,7 @@ class App(tk.Tk):
                 return False
         return True
 
+    # Valida el RUT y avanza hacia la interfaz principal de resultados.
     def _on_analizar(self):
         rut = self._rut_entry.get().strip().upper()
 
@@ -217,6 +227,7 @@ class App(tk.Tk):
         self.after(200, self._launch_main)
 
     # ── Interfaz principal ────────────────────────────────────────────────────
+    # Crea la interfaz principal con pestañas y vistas secundarias.
     def _launch_main(self):
         from ui.views.conic_view import ConicView
         from ui.views.tramo_view import TramoView
@@ -240,6 +251,7 @@ class App(tk.Tk):
 
         self._show_tab("conica")
 
+    # Construye la barra superior con logo, RUT y navegación entre secciones.
     def _build_topbar(self, parent):
         self._topbar = tk.Frame(parent, bg=C["PANEL"], height=56)
         self._topbar.pack(fill="x")
@@ -286,6 +298,7 @@ class App(tk.Tk):
             btn.pack(side="left")
             self.tab_btns[key] = btn
 
+    # Actualiza colores del tema en la pantalla principal sin reconstruir la ventana.
     def _refresh_main_theme(self):
         if hasattr(self, "_root_frame"):
             self._root_frame.configure(bg=C["BG"])
@@ -308,6 +321,7 @@ class App(tk.Tk):
             except AttributeError:
                 pass
 
+    # Aplica los colores del tema a los widgets anidados de un frame.
     def _apply_theme_to_frame(self, frame, bg_color=None, fg_color=None):
         for widget in frame.winfo_children():
             try:
@@ -317,6 +331,7 @@ class App(tk.Tk):
             if isinstance(widget, tk.Frame):
                 self._apply_theme_to_frame(widget, bg_color, fg_color)
 
+    # Cambia la vista activa entre pestañas y actualiza el estilo del tab seleccionado.
     def _show_tab(self, name: str):
         for key, btn in self.tab_btns.items():
             if key == name:

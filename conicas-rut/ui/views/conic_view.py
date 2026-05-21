@@ -20,7 +20,10 @@ class ConicView(Frame):
         self._build()
 
     def _build(self):
-        self.columnconfigure(1, weight=1)
+        self.columnconfigure(0, weight=0)
+        self.columnconfigure(1, weight=2)
+        self.columnconfigure(2, weight=1)
+        self.rowconfigure(0, weight=1)
 
         left = PanelFrame(self, self.theme, padx=12, pady=12)
         left.grid(row=0, column=0, sticky="nsew")
@@ -44,8 +47,24 @@ class ConicView(Frame):
         result_card.pack(fill="both", expand=True)
         self.step_container = StepContainer(result_card.body, self.theme)
         self.step_container.pack(fill="both", expand=True)
-        self.step_container.add_step("1. Agrupar términos", "Identificar los coeficientes y completar la forma canónica.")
-        self.step_container.add_step("2. Ajustar traslación", "Determinar los traslados y el foco de la cónica.")
+        self.load_steps([
+            {
+                "title": "Paso 1: Simplificar términos",
+                "explanation": "Agrupamos los términos cuadrados y lineales para preparar la forma canónica.",
+                "equation": "Ax^2 + Bxy + Cy^2 + Dx + Ey + F = 0",
+                "result": "Expresión reordenada",
+                "observation": "Este paso es solo visual; aún no se realizan cálculos.",
+            },
+            {
+                "title": "Paso 2: Identificar constantes",
+                "explanation": "Separamos los valores independientes y preparamos la traslación.",
+                "result": "Constantes listadas para construir la cónica.",
+            },
+        ])
+
+    def load_steps(self, steps):
+        """Carga dinámicamente una lista de pasos matemáticos."""
+        self.step_container.set_steps(steps)
 
     def update_theme(self, theme):
         self.theme = theme
