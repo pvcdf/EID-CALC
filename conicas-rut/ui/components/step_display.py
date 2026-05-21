@@ -34,7 +34,7 @@ class StepItem(CardFrame):
                 bg=self.theme.card,
                 fg=self.theme.fg,
                 font=self.theme.fonts["small"],
-                wraplength=900,
+                wraplength=360,
                 justify="left",
             ).pack(fill="x", pady=(8, 0))
 
@@ -45,7 +45,7 @@ class StepItem(CardFrame):
                 bg=self.theme.card,
                 fg=self.theme.accent2,
                 font=self.theme.fonts["mono"],
-                wraplength=900,
+                wraplength=360,
                 justify="left",
             ).pack(fill="x", pady=(8, 0))
 
@@ -56,7 +56,7 @@ class StepItem(CardFrame):
                 bg=self.theme.card,
                 fg=self.theme.green,
                 font=self.theme.fonts["label"],
-                wraplength=900,
+                wraplength=360,
                 justify="left",
             ).pack(fill="x", pady=(8, 0))
 
@@ -67,7 +67,7 @@ class StepItem(CardFrame):
                 bg=self.theme.card,
                 fg=self.theme.gray,
                 font=self.theme.fonts["small"],
-                wraplength=900,
+                wraplength=360,
                 justify="left",
             ).pack(fill="x", pady=(8, 0))
 
@@ -83,15 +83,13 @@ class StepContainer(tk.Frame):
 
         self._canvas = tk.Canvas(self, bg=self.theme.panel, highlightthickness=0, borderwidth=0)
         self._vscroll = tk.Scrollbar(self, orient="vertical", command=self._canvas.yview)
-        self._hscroll = tk.Scrollbar(self, orient="horizontal", command=self._canvas.xview)
         self._inner = tk.Frame(self._canvas, bg=self.theme.panel)
 
         self._inner_id = self._canvas.create_window((0, 0), window=self._inner, anchor="nw")
-        self._canvas.configure(yscrollcommand=self._vscroll.set, xscrollcommand=self._hscroll.set)
+        self._canvas.configure(yscrollcommand=self._vscroll.set)
 
         self._canvas.grid(row=0, column=0, sticky="nsew")
         self._vscroll.grid(row=0, column=1, sticky="ns")
-        self._hscroll.grid(row=1, column=0, sticky="ew")
 
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
