@@ -90,7 +90,7 @@ class App(tk.Tk):
         self.title("CónicasRUT — MAT1186")
         self.configure(bg=C["BG"])
         self.resizable(False, False)
-        self._center_window(1600, 850)
+        self._center_window(1800, 850)
 
         self.validated_rut = None
         self.pages = {}
@@ -177,6 +177,7 @@ class App(tk.Tk):
         self._input_card = input_card
         self._rut_entry.insert(0, "Ej: 12345678-9")
         self._rut_entry.bind("<FocusIn>", self._clear_placeholder)
+        self._rut_entry.bind("<KeyRelease>", self._on_rut_keyrelease)
         self._rut_entry.bind("<Return>", lambda e: self._on_analizar())
 
         self._status_var = tk.StringVar()
@@ -189,6 +190,11 @@ class App(tk.Tk):
     def _clear_placeholder(self, _event):
         if self._rut_entry.get().startswith("Ej:"):
             self._rut_entry.delete(0, "end")
+
+    def _on_rut_keyrelease(self, _event):
+        value = self._rut_entry.get()
+        if value.isdigit() and len(value) == 8:
+            self._rut_entry.insert("end", "-")
 
     # Valida el ingreso del RUT en tiempo real para limitar el formato.
     def _validate_rut_entry(self, proposed):
