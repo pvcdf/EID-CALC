@@ -1,4 +1,4 @@
-﻿
+
 import sys
 import os
 
@@ -6,6 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import tkinter as tk
 import tkinter.font as tkfont
+from ui.components.input_panel import InputPanel
 
 
 # ── Temas ─────────────────────────────────────────────────────────────────────
@@ -43,6 +44,7 @@ LIGHT = {
 C = dict(DARK)
 
 
+# Crea las fuentes utilizadas por la interfaz.
 def _make_fonts():
     return {
         "title":   tkfont.Font(family="Courier New", size=18, weight="bold"),
@@ -55,25 +57,51 @@ def _make_fonts():
     }
 
 
+# Estado de colores y fuentes que define el tema actual de la aplicación.
+class ThemeState:
+    def __init__(self, colors, fonts, name="dark"):
+        self.name = name
+        self.fonts = fonts
+        self.update(colors)
+
+    def update(self, colors):
+        self.bg = colors["BG"]
+        self.panel = colors["PANEL"]
+        self.card = colors["CARD"]
+        self.accent = colors["ACCENT"]
+        self.accent2 = colors["ACCENT2"]
+        self.green = colors["GREEN"]
+        self.red = colors["RED"]
+        self.yellow = colors["YELLOW"]
+        self.fg = colors["WHITE"]
+        self.gray = colors["GRAY"]
+        self.border = colors["BORDER"]
+        self.plot = colors["PLOT_BG"]
+
+
+# Ventana principal de la aplicación y control de la navegación entre pantallas.
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
         self.F = _make_fonts()
-        self.theme = "dark"   # tema inicial
+        self.theme = ThemeState(C, self.F, name="dark")
 
         self.title("CónicasRUT — MAT1186")
         self.configure(bg=C["BG"])
         self.resizable(False, False)
-        self._center_window(1200, 750)
+        self._center_window(1800, 850)
 
         self.validated_rut = None
-        self.pages     = {}
-        self.tab_btns  = {}
+        self.pages = {}
+        self.tab_btns = {}
+        self._topbar = None
+        self._mode_btn = None
 
         self._show_input_screen()
 
     # ── Utilidades ────────────────────────────────────────────────────────────
+    # Centra la ventana principal en la pantalla.
     def _center_window(self, width, height):
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
@@ -81,29 +109,32 @@ class App(tk.Tk):
         y  = (sh - height) // 2
         self.geometry(f"{width}x{height}+{x}+{y}")
 
+    # Cambia el tema oscuro/claro sin reiniciar la navegación principal.
     def _toggle_theme(self):
-        """Alterna entre oscuro y claro, y reconstruye la pantalla actual."""
+        """Alterna entre oscuro y claro, y actualiza solo el estilo visible."""
         global C
-        if self.theme == "dark":
-            self.theme = "light"
+        if self.theme.name == "dark":
+            self.theme.name = "light"
             C.update(LIGHT)
         else:
-            self.theme = "dark"
+            self.theme.name = "dark"
             C.update(DARK)
 
+        self.theme.update(C)
         self.configure(bg=C["BG"])
 
-        # Reconstruir la pantalla que está visible
         if self.validated_rut is None:
             self._show_input_screen()
         else:
-            self._launch_main()
+            self._refresh_main_theme()
 
+    # Devuelve el icono del botón de modo según el tema activo.
     def _theme_icon(self):
         """Luna = modo oscuro activo  /  Sol = modo claro activo."""
-        return "☾" if self.theme == "dark" else "☀"
+        return "☾" if self.theme.name == "dark" else "☀"
 
     # ── Pantalla de ingreso de RUT ────────────────────────────────────────────
+    # Construye la vista inicial donde el usuario ingresa su RUT.
     def _show_input_screen(self):
         if hasattr(self, "_root_frame"):
             self._root_frame.destroy()
@@ -131,74 +162,78 @@ class App(tk.Tk):
                  bg=C["BG"], fg=C["GRAY"],
                  font=self.F["small"]).pack(pady=(2, 30))
 
-        # Card
-        input_card = tk.Frame(
-            center, bg=C["CARD"],
-            highlightbackground=C["BORDER"], highlightthickness=1
+        input_card = InputPanel(
+            center,
+            self.theme,
+            title="Ingresa tu RUT para comenzar",
+            button_text="Analizar",
+            command=self._on_analizar,
+            padx=0,
+            pady=0,
         )
         input_card.pack(ipadx=20, ipady=16)
 
-        tk.Label(input_card, text="Ingresa tu RUT para comenzar",
-                 bg=C["CARD"], fg=C["WHITE"],
-                 font=self.F["label"]).pack(pady=(14, 8))
-
-        entry_row = tk.Frame(input_card, bg=C["CARD"])
-        entry_row.pack(padx=20, pady=(0, 6))
-
-        self._rut_entry = tk.Entry(
-            entry_row, bg=C["PANEL"], fg=C["WHITE"],
-            insertbackground=C["WHITE"], font=self.F["mono"],
-            bd=0, relief="flat", width=18, justify="center",
-            highlightbackground=C["BORDER"], highlightthickness=1
-        )
-        self._rut_entry.pack(side="left", ipady=8, padx=(0, 8))
+        self._rut_entry = input_card.entry
+        self._input_card = input_card
         self._rut_entry.insert(0, "Ej: 12345678-9")
         self._rut_entry.bind("<FocusIn>", self._clear_placeholder)
-        self._rut_entry.bind("<Return>",  lambda e: self._on_analizar())
-
-        tk.Button(
-            entry_row, text="Analizar",
-            bg=C["ACCENT"], fg=C["WHITE"], font=self.F["label"],
-            bd=0, cursor="hand2", padx=14, pady=8,
-            activebackground=C["ACCENT2"], activeforeground=C["BG"],
-            command=self._on_analizar
-        ).pack(side="left")
+        self._rut_entry.bind("<KeyRelease>", self._on_rut_keyrelease)
+        self._rut_entry.bind("<Return>", lambda e: self._on_analizar())
 
         self._status_var = tk.StringVar()
-        tk.Label(
-            input_card, textvariable=self._status_var,
-            bg=C["CARD"], fg=C["RED"], font=self.F["small"]
-        ).pack(pady=(4, 12))
+        self._input_card.status_label.configure(textvariable=self._status_var)
 
+        vcmd = self.register(self._validate_rut_entry)
+        self._rut_entry.configure(validate="key", validatecommand=(vcmd, "%P"))
+
+    # Limpia el texto de ayuda cuando el campo RUT recibe foco.
     def _clear_placeholder(self, _event):
         if self._rut_entry.get().startswith("Ej:"):
             self._rut_entry.delete(0, "end")
 
+    def _on_rut_keyrelease(self, _event):
+        value = self._rut_entry.get()
+        if value.isdigit() and len(value) == 8:
+            self._rut_entry.insert("end", "-")
+
+    # Valida el ingreso del RUT en tiempo real para limitar el formato.
+    def _validate_rut_entry(self, proposed):
+        if proposed == "" or proposed.startswith("Ej:"):
+            return True
+        allowed = set("0123456789Kk-")
+        if any(ch not in allowed for ch in proposed):
+            return False
+        if proposed.count("-") > 1:
+            return False
+        if "-" in proposed:
+            tail = proposed.split("-", 1)[1]
+            if len(tail) > 1:
+                return False
+        return True
+
+    # Valida el RUT y avanza hacia la interfaz principal de resultados.
     def _on_analizar(self):
-        rut = self._rut_entry.get().strip()
+        rut = self._rut_entry.get().strip().upper()
 
         if not rut or rut.startswith("Ej:"):
             self._status_var.set("Por favor ingresa tu RUT.")
             return
 
-        # ── Conectar con Gustavo (core/rut_validator.py) cuando esté listo ──
-        # from core.rut_validator import validate_rut
-        # result = validate_rut(rut)
-        # if not result["valid"]:
-        #     self._status_var.set(result["error"])
-        #     return
-        # self.validated_rut = result["rut_formatted"]
-        # ─────────────────────────────────────────────────────────────────────
-
-        if "-" not in rut:
+        if rut.count("-") != 1:
             self._status_var.set("Formato inválido. Ejemplo: 12345678-9")
             return
 
-        self.validated_rut = rut.upper()
+        body, dv = rut.split("-", 1)
+        if not body.isdigit() or len(dv) != 1 or not (dv.isdigit() or dv == "K"):
+            self._status_var.set("Formato inválido. Debe tener un dígito verificador.")
+            return
+
+        self.validated_rut = rut
         self._status_var.set("")
         self.after(200, self._launch_main)
 
     # ── Interfaz principal ────────────────────────────────────────────────────
+    # Crea la interfaz principal con pestañas y vistas secundarias.
     def _launch_main(self):
         from ui.views.conic_view import ConicView
         from ui.views.tramo_view import TramoView
@@ -214,23 +249,24 @@ class App(tk.Tk):
         container = tk.Frame(self._root_frame, bg=C["BG"])
         container.pack(fill="both", expand=True)
 
-        self.pages["conica"] = ConicView(container, self.validated_rut, self.F)
-        self.pages["tramos"] = TramoView(container, self.validated_rut, self.F)
+        self.pages["conica"] = ConicView(container, self.theme)
+        self.pages["tramos"] = TramoView(container, self.theme)
 
         for page in self.pages.values():
             page.place(x=0, y=0, relwidth=1, relheight=1)
 
         self._show_tab("conica")
 
+    # Construye la barra superior con logo, RUT y navegación entre secciones.
     def _build_topbar(self, parent):
-        bar = tk.Frame(parent, bg=C["PANEL"], height=56)
-        bar.pack(fill="x")
-        bar.pack_propagate(False)
+        self._topbar = tk.Frame(parent, bg=C["PANEL"], height=56)
+        self._topbar.pack(fill="x")
+        self._topbar.pack_propagate(False)
 
         # Logo izquierda
-        logo = tk.Frame(bar, bg=C["PANEL"])
+        logo = tk.Frame(self._topbar, bg=C["PANEL"])
         logo.pack(side="left", padx=20, pady=10)
-        tk.Label(logo, text="◈",         bg=C["PANEL"], fg=C["ACCENT"],
+        tk.Label(logo, text="◈", bg=C["PANEL"], fg=C["ACCENT"],
                  font=self.F["label"]).pack(side="left", padx=(0, 6))
         tk.Label(logo, text="CónicasRUT", bg=C["PANEL"], fg=C["WHITE"],
                  font=self.F["label"]).pack(side="left")
@@ -239,16 +275,17 @@ class App(tk.Tk):
                  font=self.F["small"]).pack(side="left")
 
         # Botón de tema (esquina derecha)
-        tk.Button(
-            bar, text=self._theme_icon(),
+        self._mode_btn = tk.Button(
+            self._topbar, text=self._theme_icon(),
             bg=C["PANEL"], fg=C["WHITE"], font=self.F["head"],
             bd=0, cursor="hand2",
             activebackground=C["PANEL"], activeforeground=C["ACCENT"],
             command=self._toggle_theme
-        ).pack(side="right", padx=16)
+        )
+        self._mode_btn.pack(side="right", padx=16)
 
         # Tabs
-        tabs = tk.Frame(bar, bg=C["PANEL"])
+        tabs = tk.Frame(self._topbar, bg=C["PANEL"])
         tabs.pack(side="right", padx=(0, 4))
 
         self.tab_btns = {}
@@ -267,6 +304,40 @@ class App(tk.Tk):
             btn.pack(side="left")
             self.tab_btns[key] = btn
 
+    # Actualiza colores del tema en la pantalla principal sin reconstruir la ventana.
+    def _refresh_main_theme(self):
+        if hasattr(self, "_root_frame"):
+            self._root_frame.configure(bg=C["BG"])
+        if self._topbar is not None:
+            self._topbar.configure(bg=C["PANEL"])
+            self._apply_theme_to_frame(self._topbar, bg_color=C["PANEL"], fg_color=C["WHITE"])
+        if self._mode_btn is not None:
+            self._mode_btn.configure(
+                text=self._theme_icon(),
+                bg=C["PANEL"],
+                fg=C["WHITE"],
+                activebackground=C["PANEL"],
+                activeforeground=C["ACCENT"],
+            )
+        for btn in self.tab_btns.values():
+            btn.configure(bg=C["PANEL"], fg=C["GRAY"], activebackground=C["ACCENT"], activeforeground=C["WHITE"])
+        for page in self.pages.values():
+            try:
+                page.update_theme(self.theme)
+            except AttributeError:
+                pass
+
+    # Aplica los colores del tema a los widgets anidados de un frame.
+    def _apply_theme_to_frame(self, frame, bg_color=None, fg_color=None):
+        for widget in frame.winfo_children():
+            try:
+                widget.configure(bg=bg_color or widget.cget("bg"), fg=fg_color or widget.cget("fg"))
+            except tk.TclError:
+                pass
+            if isinstance(widget, tk.Frame):
+                self._apply_theme_to_frame(widget, bg_color, fg_color)
+
+    # Cambia la vista activa entre pestañas y actualiza el estilo del tab seleccionado.
     def _show_tab(self, name: str):
         for key, btn in self.tab_btns.items():
             if key == name:
