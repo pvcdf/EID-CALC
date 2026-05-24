@@ -1,16 +1,29 @@
 from tramo_function import CrearVariables
 
-def calcular_limite_lateral(funcion, a, direccion):
+def generar_tabla_aproximacion(funcion, a, direccion):
     deltas = [0.1, 0.01, 0.001, 0.0001]
     signo = -1 if direccion == "izquierda" else 1
-    ultimo = None
+    simbolo = "-" if direccion == "izquierda" else "+"
+    
+    valores_y = []
     for delta in deltas:
         x = a + signo * delta
         try:
-            ultimo = funcion(x)
+            y = funcion(x)
+            valores_y.append(f"{y:.4f}")
         except ZeroDivisionError:
-            pass
-    return ultimo
+            valores_y.append("Indef")
+            
+    texto_aproximacion = f"x -> {a}{simbolo} -> f(x) = " + ", ".join(valores_y)
+    ultimo_valor = None
+    if valores_y[-1] != "Indef":
+        ultimo_valor = float(valores_y[-1])
+        
+    return {
+        "texto": texto_aproximacion,
+        "ultimo_valor": ultimo_valor,
+        "progresion": valores_y
+    }
 
 def evaluar_en_punto(funcion, a):
     try:
@@ -18,38 +31,73 @@ def evaluar_en_punto(funcion, a):
     except ZeroDivisionError:
         return None
 
-def clasificar_discontinuidad(tipo, a, lim_izq, lim_der):
+def limites_algebraicos_estructurados(tipo, a, digitos):
+    explicacion_formal = {
+        "identificacion": f"Analisis de discontinuidad en x = {a} basada en el digito d8 ({digitos['d8']}).",
+        "preliminar": "",
+        "demostracion": []
+    }
+    
     if tipo == "removible":
-        justificacion = f"El limite existe y vale {lim_izq:.4f}, pero f({a}) no esta definida. Es removible porque podria eliminarse definiendo f({a}) = {lim_izq:.4f}."
+        limite = a + digitos["d1"]
+        explicacion_formal["preliminar"] = f"Se construyo f(x) = ((x - {a})(x + {digitos['d1']})) / (x - {a})"
+        explicacion_formal["demostracion"].append(f"Simplificando el factor (x - {a}), la funcion equivalente es f(x) = x + {digitos['d1']} para todo x distinto de {a}.")
+        explicacion_formal["demostracion"].append(f"Evaluando el limite directamente: {a} + {digitos['d1']} = {limite}.")
+        return limite, limite, explicacion_formal
+        
     elif tipo == "salto":
-        justificacion = f"El limite por izquierda ({lim_izq:.4f}) es distinto al limite por derecha ({lim_der:.4f}). El limite bilateral no existe, lo que indica una discontinuidad de salto."
+        lim_izq = a + digitos["d2"]
+        lim_der = a + digitos["d4"]
+        explicacion_formal["preliminar"] = f"Funcion definida por tramos separada en x = {a}."
+        explicacion_formal["demostracion"].append(f"Limite por izquierda (x < {a}): se evalua (x + {digitos['d2']}) resultando en {a} + {digitos['d2']} = {lim_izq}.")
+        explicacion_formal["demostracion"].append(f"Limite por derecha (x >= {a}): se evalua (x + {digitos['d4']}) resultando en {a} + {digitos['d4']} = {lim_der}.")
+        explicacion_formal["demostracion"].append(f"Como {lim_izq} es distinto de {lim_der}, el limite bilateral no existe.")
+        return lim_izq, lim_der, explicacion_formal
+        
     elif tipo == "infinita":
-        justificacion = f"El denominador se anula en x = {a}. Los limites laterales tienden a mas/menos infinito, por lo que hay una asintota vertical en x = {a}."
-    return {"tipo": tipo, "justificacion": justificacion}
+        numerador = digitos["d5"] + 1
+        explicacion_formal["preliminar"] = f"Se construyo la fraccion f(x) = {numerador} / (x - {a})."
+        explicacion_formal["demostracion"].append(f"Al evaluar x -> {a}, el denominador tiende a 0 mientras el numerador se mantiene en {numerador}.")
+        explicacion_formal["demostracion"].append(f"La division por cero genera un crecimiento infinito (asintota vertical).")
+        return None, None, explicacion_formal
+        
+    return None, None, explicacion_formal
 
 def AnalizarLimites(Rut):
     datos = CrearVariables(Rut)
     funcion = datos["funcion"]
     a = datos["a"]
     tipo = datos["tipo_discontinuidad"]
+    digitos = datos["digitos"]
 
-    lim_izq = calcular_limite_lateral(funcion, a, "izquierda")
-    lim_der = calcular_limite_lateral(funcion, a, "derecha")
+    tabla_izq = generar_tabla_aproximacion(funcion, a, "izquierda")
+    tabla_der = generar_tabla_aproximacion(funcion, a, "derecha")
     valor_en_punto = evaluar_en_punto(funcion, a)
+    
+    lim_izq_alg, lim_der_alg, explicacion = limites_algebraicos_estructurados(tipo, a, digitos)
 
     if tipo == "infinita":
         limite_existe = False
         es_continua = False
+        conclusion_tabla = f"Ambos limites divergen hacia infinito, confirmando asintota en x = {a}."
     else:
-        limite_existe = lim_izq is not None and lim_der is not None and abs(lim_izq - lim_der) < 0.0001
-        es_continua = limite_existe and valor_en_punto is not None and abs(valor_en_punto - lim_izq) < 0.0001
+        limite_existe = lim_izq_alg == lim_der_alg
+        es_continua = limite_existe and valor_en_punto is not None and abs(valor_en_punto - lim_izq_alg) < 0.0001
+        
+        if limite_existe:
+            conclusion_tabla = f"Ambos limites se aproximan a {lim_izq_alg}, por lo tanto el limite bilateral existe."
+        else:
+            conclusion_tabla = f"Los limites se aproximan a valores distintos ({lim_izq_alg} y {lim_der_alg}), el limite bilateral no existe."
 
     return {
         "a": a,
-        "limite_izquierdo": lim_izq,
-        "limite_derecho": lim_der,
-        "limite_existe": limite_existe,
         "valor_en_punto": valor_en_punto,
+        "limite_existe": limite_existe,
         "es_continua": es_continua,
-        "discontinuidad": clasificar_discontinuidad(tipo, a, lim_izq, lim_der)
+        "tablas_aproximacion": {
+            "izquierda": tabla_izq["texto"],
+            "derecha": tabla_der["texto"],
+            "conclusion": conclusion_tabla
+        },
+        "explicacion_formal": explicacion
     }
