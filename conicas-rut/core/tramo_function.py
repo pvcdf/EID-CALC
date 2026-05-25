@@ -1,8 +1,8 @@
-from rut_validator import validate_rut
+# Espera recibir un dict con estructura: {"named_digits": {"d1": int, ..., "d8": int}}
+# Este dict debe venir del módulo de validación (rut_validator)
 
-def CrearVariables(Rut):
-    Variables = validate_rut(Rut)
-    digitos = Variables["named_digits"]
+def CrearVariables(rut_data):
+    digitos = rut_data["named_digits"]
     a = digitos["d3"]
     residuo = digitos["d8"] % 3
     if residuo == 2: # discontinuidad infinita

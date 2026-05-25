@@ -1,6 +1,13 @@
-
 import sys
 import os
+
+# ── Fix DPI en Windows (evita el efecto "zoom" en pantallas de alta resolución) ──
+if sys.platform == "win32":
+    try:
+        from ctypes import windll
+        windll.shcore.SetProcessDpiAwareness(1)
+    except Exception:
+        pass
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -89,8 +96,8 @@ class App(tk.Tk):
 
         self.title("CónicasRUT — MAT1186")
         self.configure(bg=C["BG"])
-        self.resizable(False, False)
-        self._center_window(1800, 850)
+        self.resizable(True, True)
+        self._maximize_window()
 
         self.validated_rut = None
         self.pages = {}
@@ -101,13 +108,12 @@ class App(tk.Tk):
         self._show_input_screen()
 
     # ── Utilidades ────────────────────────────────────────────────────────────
-    # Centra la ventana principal en la pantalla.
-    def _center_window(self, width, height):
-        sw = self.winfo_screenwidth()
-        sh = self.winfo_screenheight()
-        x  = (sw - width)  // 2
-        y  = (sh - height) // 2
-        self.geometry(f"{width}x{height}+{x}+{y}")
+    # Maximiza la ventana conservando la barra de título del SO.
+    def _maximize_window(self):
+        if sys.platform == "win32":
+            self.state("zoomed")
+        else:
+            self.attributes("-zoomed", True)
 
     # Cambia el tema oscuro/claro sin reiniciar la navegación principal.
     def _toggle_theme(self):
@@ -150,17 +156,17 @@ class App(tk.Tk):
             activeforeground=C["ACCENT"], command=self._toggle_theme
         ).place(relx=1.0, x=-16, y=12, anchor="ne")
 
-        # Contenido centrado
+        # Contenedor centrado horizontalmente en la pantalla
         center = tk.Frame(self._root_frame, bg=C["BG"])
         center.place(relx=0.5, rely=0.5, anchor="center")
 
         tk.Label(center, text="◈", bg=C["BG"], fg=C["ACCENT"],
-                 font=self.F["title"]).pack()
+                 font=self.F["title"]).pack(anchor="center")
         tk.Label(center, text="CónicasRUT", bg=C["BG"], fg=C["WHITE"],
-                 font=self.F["title"]).pack()
+                 font=self.F["title"]).pack(anchor="center")
         tk.Label(center, text="MAT1186 — Ingeniería Civil en Informática",
                  bg=C["BG"], fg=C["GRAY"],
-                 font=self.F["small"]).pack(pady=(2, 30))
+                 font=self.F["small"]).pack(anchor="center", pady=(2, 30))
 
         input_card = InputPanel(
             center,
@@ -171,63 +177,25 @@ class App(tk.Tk):
             padx=0,
             pady=0,
         )
-        input_card.pack(ipadx=20, ipady=16)
+        input_card.pack(anchor="center", ipadx=20, ipady=16)
 
         self._rut_entry = input_card.entry
         self._input_card = input_card
         self._rut_entry.insert(0, "Ej: 12345678-9")
         self._rut_entry.bind("<FocusIn>", self._clear_placeholder)
-        self._rut_entry.bind("<KeyRelease>", self._on_rut_keyrelease)
         self._rut_entry.bind("<Return>", lambda e: self._on_analizar())
 
         self._status_var = tk.StringVar()
         self._input_card.status_label.configure(textvariable=self._status_var)
-
-        vcmd = self.register(self._validate_rut_entry)
-        self._rut_entry.configure(validate="key", validatecommand=(vcmd, "%P"))
 
     # Limpia el texto de ayuda cuando el campo RUT recibe foco.
     def _clear_placeholder(self, _event):
         if self._rut_entry.get().startswith("Ej:"):
             self._rut_entry.delete(0, "end")
 
-    def _on_rut_keyrelease(self, _event):
-        value = self._rut_entry.get()
-        if value.isdigit() and len(value) == 8:
-            self._rut_entry.insert("end", "-")
-
-    # Valida el ingreso del RUT en tiempo real para limitar el formato.
-    def _validate_rut_entry(self, proposed):
-        if proposed == "" or proposed.startswith("Ej:"):
-            return True
-        allowed = set("0123456789Kk-")
-        if any(ch not in allowed for ch in proposed):
-            return False
-        if proposed.count("-") > 1:
-            return False
-        if "-" in proposed:
-            tail = proposed.split("-", 1)[1]
-            if len(tail) > 1:
-                return False
-        return True
-
-    # Valida el RUT y avanza hacia la interfaz principal de resultados.
+    # Obtiene el RUT del campo de entrada y avanza hacia la interfaz principal.
     def _on_analizar(self):
         rut = self._rut_entry.get().strip().upper()
-
-        if not rut or rut.startswith("Ej:"):
-            self._status_var.set("Por favor ingresa tu RUT.")
-            return
-
-        if rut.count("-") != 1:
-            self._status_var.set("Formato inválido. Ejemplo: 12345678-9")
-            return
-
-        body, dv = rut.split("-", 1)
-        if not body.isdigit() or len(dv) != 1 or not (dv.isdigit() or dv == "K"):
-            self._status_var.set("Formato inválido. Debe tener un dígito verificador.")
-            return
-
         self.validated_rut = rut
         self._status_var.set("")
         self.after(200, self._launch_main)
