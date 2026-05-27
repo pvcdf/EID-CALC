@@ -1,15 +1,10 @@
-import sys
+﻿import sys
 import os
 
-# ── Fix DPI en Windows (evita el efecto "zoom" en pantallas de alta resolución) ──
-if sys.platform == "win32":
-    try:
-        from ctypes import windll
-        windll.shcore.SetProcessDpiAwareness(1)
-    except Exception:
-        pass
-
+# Importar funciones de inicialización desde main.py
+# Esto configura DPI awareness y el path del proyecto
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import main  # noqa: F401
 
 import tkinter as tk
 import tkinter.font as tkfont
@@ -32,21 +27,6 @@ DARK = {
     "PLOT_BG": "#13121F",
 }
 
-LIGHT = {
-    "BG":      "#F7F7F8",
-    "PANEL":   "#EFEFF2",
-    "CARD":    "#E6E6EA",
-    "ACCENT":  "#7B6FF0",
-    "ACCENT2": "#534AB7",
-    "GREEN":   "#059669",
-    "RED":     "#DC2626",
-    "YELLOW":  "#B45309",
-    "WHITE":   "#0B0B0B",
-    "GRAY":    "#6B6A85",
-    "BORDER":  "#D1D1DB",
-    "PLOT_BG": "#FFFFFF",
-}
-
 # Colores activos
 C = dict(DARK)
 
@@ -67,7 +47,7 @@ def _make_fonts():
 # Estado de colores y fuentes que define el tema actual de la aplicación.
 class ThemeState:
     def __init__(self, colors, fonts, name="dark"):
-        self.name = name
+        self.name = "dark"  # Siempre modo oscuro
         self.fonts = fonts
         self.update(colors)
 
@@ -103,9 +83,10 @@ class App(tk.Tk):
         self.pages = {}
         self.tab_btns = {}
         self._topbar = None
-        self._mode_btn = None
+        self._is_maximized = True
 
         self._show_input_screen()
+        self._monitor_window_state()
 
     # ── Utilidades ────────────────────────────────────────────────────────────
     # Maximiza la ventana conservando la barra de título del SO.
@@ -115,29 +96,50 @@ class App(tk.Tk):
         else:
             self.attributes("-zoomed", True)
 
+    # Monitorea cambios en el estado de la ventana (maximizado → restaurado).
+    def _monitor_window_state(self):
+        """Verifica si la ventana salió del estado maximizado y aplica tamaño normal."""
+        try:
+            current_state = self.state()
+            if self._is_maximized and current_state != "zoomed":
+                # La ventana fue restaurada/minimizada
+                self._is_maximized = False
+                self._set_normal_size()
+            elif not self._is_maximized and current_state == "zoomed":
+                # La ventana fue maximizada nuevamente
+                self._is_maximized = True
+        except Exception:
+            pass
+        
+        # Continuar monitoreando cada 500ms
+        self.after(500, self._monitor_window_state)
+
+    # Establece un tamaño normal para la ventana (después de minimizar/restaurar).
+    def _set_normal_size(self):
+        """Aplica un tamaño visible cuando la ventana sale de maximizado."""
+        if sys.platform == "win32":
+            self.state("normal")
+        
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        
+        # Tamaño: 60% del ancho y alto de la pantalla, centrado
+        new_width = int(screen_width * 0.6)
+        new_height = int(screen_height * 0.6)
+        x_pos = (screen_width - new_width) // 2
+        y_pos = (screen_height - new_height) // 2
+        
+        self.geometry(f"{new_width}x{new_height}+{x_pos}+{y_pos}")
+
     # Cambia el tema oscuro/claro sin reiniciar la navegación principal.
     def _toggle_theme(self):
-        """Alterna entre oscuro y claro, y actualiza solo el estilo visible."""
-        global C
-        if self.theme.name == "dark":
-            self.theme.name = "light"
-            C.update(LIGHT)
-        else:
-            self.theme.name = "dark"
-            C.update(DARK)
-
-        self.theme.update(C)
-        self.configure(bg=C["BG"])
-
-        if self.validated_rut is None:
-            self._show_input_screen()
-        else:
-            self._refresh_main_theme()
+        """Método removido - solo modo oscuro disponible."""
+        pass
 
     # Devuelve el icono del botón de modo según el tema activo.
     def _theme_icon(self):
-        """Luna = modo oscuro activo  /  Sol = modo claro activo."""
-        return "☾" if self.theme.name == "dark" else "☀"
+        """Método removido - solo modo oscuro disponible."""
+        return ""
 
     # ── Pantalla de ingreso de RUT ────────────────────────────────────────────
     # Construye la vista inicial donde el usuario ingresa su RUT.
@@ -147,14 +149,6 @@ class App(tk.Tk):
 
         self._root_frame = tk.Frame(self, bg=C["BG"])
         self._root_frame.pack(fill="both", expand=True)
-
-        # Botón de tema (esquina superior derecha)
-        tk.Button(
-            self._root_frame, text=self._theme_icon(),
-            bg=C["BG"], fg=C["WHITE"], font=self.F["head"],
-            bd=0, cursor="hand2", activebackground=C["BG"],
-            activeforeground=C["ACCENT"], command=self._toggle_theme
-        ).place(relx=1.0, x=-16, y=12, anchor="ne")
 
         # Contenedor centrado horizontalmente en la pantalla
         center = tk.Frame(self._root_frame, bg=C["BG"])
@@ -177,7 +171,7 @@ class App(tk.Tk):
             padx=0,
             pady=0,
         )
-        input_card.pack(anchor="center", ipadx=20, ipady=16)
+        input_card.pack(anchor="center", ipadx=0, ipady=0)
 
         self._rut_entry = input_card.entry
         self._input_card = input_card
@@ -242,16 +236,6 @@ class App(tk.Tk):
                  bg=C["PANEL"], fg=C["GRAY"],
                  font=self.F["small"]).pack(side="left")
 
-        # Botón de tema (esquina derecha)
-        self._mode_btn = tk.Button(
-            self._topbar, text=self._theme_icon(),
-            bg=C["PANEL"], fg=C["WHITE"], font=self.F["head"],
-            bd=0, cursor="hand2",
-            activebackground=C["PANEL"], activeforeground=C["ACCENT"],
-            command=self._toggle_theme
-        )
-        self._mode_btn.pack(side="right", padx=16)
-
         # Tabs
         tabs = tk.Frame(self._topbar, bg=C["PANEL"])
         tabs.pack(side="right", padx=(0, 4))
@@ -271,39 +255,6 @@ class App(tk.Tk):
             )
             btn.pack(side="left")
             self.tab_btns[key] = btn
-
-    # Actualiza colores del tema en la pantalla principal sin reconstruir la ventana.
-    def _refresh_main_theme(self):
-        if hasattr(self, "_root_frame"):
-            self._root_frame.configure(bg=C["BG"])
-        if self._topbar is not None:
-            self._topbar.configure(bg=C["PANEL"])
-            self._apply_theme_to_frame(self._topbar, bg_color=C["PANEL"], fg_color=C["WHITE"])
-        if self._mode_btn is not None:
-            self._mode_btn.configure(
-                text=self._theme_icon(),
-                bg=C["PANEL"],
-                fg=C["WHITE"],
-                activebackground=C["PANEL"],
-                activeforeground=C["ACCENT"],
-            )
-        for btn in self.tab_btns.values():
-            btn.configure(bg=C["PANEL"], fg=C["GRAY"], activebackground=C["ACCENT"], activeforeground=C["WHITE"])
-        for page in self.pages.values():
-            try:
-                page.update_theme(self.theme)
-            except AttributeError:
-                pass
-
-    # Aplica los colores del tema a los widgets anidados de un frame.
-    def _apply_theme_to_frame(self, frame, bg_color=None, fg_color=None):
-        for widget in frame.winfo_children():
-            try:
-                widget.configure(bg=bg_color or widget.cget("bg"), fg=fg_color or widget.cget("fg"))
-            except tk.TclError:
-                pass
-            if isinstance(widget, tk.Frame):
-                self._apply_theme_to_frame(widget, bg_color, fg_color)
 
     # Cambia la vista activa entre pestañas y actualiza el estilo del tab seleccionado.
     def _show_tab(self, name: str):

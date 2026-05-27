@@ -12,42 +12,42 @@ class InputPanel(CardFrame):
             text=title,
             bg=self.theme.card,
             fg=self.theme.fg,
-            font=self.theme.fonts["label"],
-        ).pack(anchor="w", padx=18, pady=(18, 8))
+            font=self.theme.fonts["head"],
+        ).pack(anchor="center", padx=18, pady=(28, 20))
 
         self.entry_container = tk.Frame(self, bg=self.theme.card)
-        self.entry_container.pack(fill="x", padx=18, pady=(0, 12))
+        self.entry_container.pack(fill="x", padx=24, pady=(0, 18))
 
         self.entry = tk.Entry(
             self.entry_container,
             bg=self.theme.panel,
             fg=self.theme.fg,
             insertbackground=self.theme.fg,
-            font=self.theme.fonts["mono"],
+            font=self.theme.fonts["label"],
             bd=0,
             relief="flat",
             justify="center",
-            width=18,
+            width=24,
             highlightbackground=self.theme.border,
             highlightthickness=1,
         )
-        self.entry.pack(side="left", ipady=8, padx=(0, 8))
+        self.entry.pack(side="top", ipady=12, padx=0)
 
         self.action_button = tk.Button(
             self.entry_container,
             text=button_text,
             bg=self.theme.accent,
             fg=self.theme.bg,
-            font=self.theme.fonts["label"],
+            font=self.theme.fonts["head"],
             bd=0,
             cursor="hand2",
-            padx=14,
-            pady=8,
+            padx=32,
+            pady=12,
             activebackground=self.theme.accent2,
             activeforeground=self.theme.bg,
             command=command,
         )
-        self.action_button.pack(side="left")
+        self.action_button.pack(side="top", pady=(18, 0))
 
         self.status_label = tk.Label(
             self,
@@ -56,7 +56,7 @@ class InputPanel(CardFrame):
             fg=self.theme.red,
             font=self.theme.fonts["small"],
         )
-        self.status_label.pack(anchor="w", padx=18, pady=(0, 12))
+        self.status_label.pack(anchor="center", padx=18, pady=(0, 4))
 
     def set_status(self, text, color=None):
         self.status_label.configure(text=text, fg=color or self.theme.red)
