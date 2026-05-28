@@ -1,3 +1,5 @@
+# conicas-rut/ui/components/step_display.py
+
 import tkinter as tk
 from ui.components.card import CardFrame
 

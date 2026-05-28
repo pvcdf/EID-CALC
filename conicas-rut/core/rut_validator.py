@@ -1,3 +1,5 @@
+# conicas-rut/core/rut_validator.py
+
 from core.result_models import build_success, build_error
 
 # Limpieza de RUT

@@ -1,3 +1,5 @@
+# conicas-rut/ui/components/header.py
+
 import tkinter as tk
 
 

@@ -1,3 +1,5 @@
+# conicas-rut/ui/views/conic_view.py
+
 from tkinter import Frame, Label
 from ui.components.card import CardFrame
 from ui.components.graph_panel import GraphPanel

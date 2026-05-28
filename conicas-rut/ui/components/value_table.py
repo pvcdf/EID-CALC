@@ -1,3 +1,5 @@
+# conicas-rut/ui/components/value_table.py
+
 import tkinter as tk
 from ui.components.card import CardFrame
 

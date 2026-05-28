@@ -1,3 +1,5 @@
+# conicas-rut/ui/components/card.py
+
 import tkinter as tk
 
 

@@ -1,2 +1,4 @@
 
 conicas-rut/core/__pycache__/
+
+*.pyc

@@ -1,3 +1,5 @@
+# conicas-rut/ui/components/panel.py
+
 import tkinter as tk
 
 

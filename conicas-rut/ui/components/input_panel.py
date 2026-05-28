@@ -1,3 +1,5 @@
+# conicas-rut/ui/components/input_panel.py
+
 import tkinter as tk
 from ui.components.card import CardFrame
 

@@ -1,3 +1,5 @@
+# conicas-rut/ui/components/result_section.py
+
 import tkinter as tk
 from ui.components.card import CardFrame
 from ui.components.header import SectionHeader
