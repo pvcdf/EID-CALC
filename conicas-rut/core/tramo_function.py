@@ -1,5 +1,9 @@
+<<<<<<< Updated upstream
 # Espera recibir un dict con estructura: {"named_digits": {"d1": int, ..., "d8": int}}
 # Este dict debe venir del módulo de validación (rut_validator)
+=======
+from core.rut_validator import validate_rut 
+>>>>>>> Stashed changes
 
 def CrearVariables(rut_data):
     digitos = rut_data["named_digits"]

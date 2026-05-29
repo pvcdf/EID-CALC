@@ -288,6 +288,7 @@ elif conic_type == "parabola":
 
 # ─────────────────────────────────────────────
 # FIN
+<<<<<<< Updated upstream
 # ─────────────────────────────────────────────
 
 imprimir_separador(
@@ -297,3 +298,6 @@ imprimir_separador(
 print(
     "\n✓ Todas las etapas fueron ejecutadas correctamente."
 )
+=======
+# ─────────────────────────────────────────────
+>>>>>>> Stashed changes
