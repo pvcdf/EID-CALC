@@ -1,9 +1,18 @@
+# conicas-rut/core/transforms/parabola_transform.py
+
 from core.result_models import build_success, build_error
 
 
 def transform_parabola(A, B, C, D, E):
     steps = []
+
     try:
+        A = round(A, 2)
+        B = round(B, 2)
+        C = round(C, 2)
+        D = round(D, 2)
+        E = round(E, 2)
+        
         if B == 0:
             steps.append({
                 "title": "Identificar tipo",

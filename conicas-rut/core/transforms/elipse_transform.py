@@ -1,9 +1,18 @@
+# conicas-rut/core/transforms/ellipse_transform.py
+
 from core.result_models import build_success, build_error
 
 
 def transform_ellipse(A, B, C, D, E):
     steps = []
+
     try:
+        A = round(A, 2)
+        B = round(B, 2)
+        C = round(C, 2)
+        D = round(D, 2)
+        E = round(E, 2)
+        
         steps.append({
             "title": "Agrupar términos cuadráticos",
             "explanation": "Se separan los grupos en x e y para completar cuadrado.",

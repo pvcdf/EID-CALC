@@ -1,9 +1,18 @@
+# conicas-rut/core/transforms/hyperbola_transform.py
+
 from core.result_models import build_success, build_error
 
 
 def transform_hyperbola(A, B, C, D, E):
     steps = []
+
     try:
+        A = round(A, 2)
+        B = round(B, 2)
+        C = round(C, 2)
+        D = round(D, 2)
+        E = round(E, 2)
+        
         steps.append({
             "title": "Identificar coeficientes",
             "explanation": "A y B tienen signos opuestos, lo que confirma la hipérbola.",
