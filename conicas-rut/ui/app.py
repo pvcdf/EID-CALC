@@ -1,4 +1,4 @@
-﻿# conicas-rut/ui/app.py
+# conicas-rut/ui/app.py
 
 import sys
 import os
@@ -218,10 +218,8 @@ class App(tk.Tk):
             container,
             self.theme
         )
-        self.pages["tramos"] = TramoView(
-            container,
-            self.theme
-        )
+        self.pages["tramos"] = TramoView(container, self.theme)
+        self.pages["tramos"].load_data(self.validated_rut)
         for page in self.pages.values():
             page.place(
                 x=0,
@@ -230,6 +228,10 @@ class App(tk.Tk):
                 relheight=1
             )
         self._show_tab("conica")
+        
+        self.update_idletasks()
+        self.pages["conica"].load_data(self.validated_rut)
+        self.pages["tramos"].load_data(self.validated_rut)
 
     # ── Barra superior ──────────────────────────────────────────────────────
     def _build_topbar(self, parent):
@@ -283,4 +285,3 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
-

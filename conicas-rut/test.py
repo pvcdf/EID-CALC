@@ -2,6 +2,8 @@ from core.rut_validator import validate_rut
 from core.coef_builder import build_coefficients
 
 from core.conic_classifier import classify_conic
+from core.tramo_function import CrearVariables
+from core.limit_analyzer import AnalizarLimites
 
 from core.transforms.canonical_transform import (
     transform_conic
@@ -287,17 +289,36 @@ elif conic_type == "parabola":
 
 
 # ─────────────────────────────────────────────
-# FIN
-<<<<<<< Updated upstream
+# ANÁLISIS DE DISCONTINUIDAD Y LÍMITES
 # ─────────────────────────────────────────────
 
-imprimir_separador(
-    "PROCESO COMPLETADO"
-)
+imprimir_separador("ANÁLISIS DE DISCONTINUIDAD Y LÍMITES")
+
+limites_resultado = AnalizarLimites(rut)
+
+if not limites_resultado["valid"]:
+    imprimir_error(limites_resultado)
+    exit()
+
+imprimir_pasos(limites_resultado.get("steps", []))
+
+datos_limites = limites_resultado["data"]
+
+print(f"\n✓ Análisis completado")
+print(f"  Punto crítico (a): {datos_limites['a']}")
+print(f"  Valor en el punto: {datos_limites['valor_en_punto']}")
+print(f"  Límite existe: {'Sí' if datos_limites['limite_existe'] else 'No'}")
+print(f"  Es continua: {'Sí' if datos_limites['es_continua'] else 'No'}")
+
+print(f"\n  Resumen:")
+print(f"  {limites_resultado['explanation']}")
+
+print("\n✓ Todas las etapas fueron ejecutadas correctamente.")
+
+# ─────────────────────────────────────────────
+# FIN
+# ─────────────────────────────────────────────
 
 print(
     "\n✓ Todas las etapas fueron ejecutadas correctamente."
 )
-=======
-# ─────────────────────────────────────────────
->>>>>>> Stashed changes

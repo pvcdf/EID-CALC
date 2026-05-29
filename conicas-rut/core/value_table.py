@@ -1,4 +1,4 @@
-from tramo_function import CrearVariables
+from core.tramo_function import CrearVariables
 
 def CrearTablaValores(a, funcion):
     deltas_izq = [-1, -0.1, -0.01, -0.001]

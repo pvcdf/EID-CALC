@@ -5,9 +5,13 @@ from ui.components.panel import PanelFrame
 from ui.components.result_section import ResultSection
 from ui.components.value_table import ValueTable
 from ui.components.step_display import StepContainer
-
+from core.tramo_function import CrearVariables
+from core.limit_analyzer import AnalizarLimites
+from core.value_table import CrearTablaValores
+from graphics.tramo_plotter import TramoPlotter
 
 class TramoView(Frame):
+    
     def __init__(self, master, theme, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.theme = theme
@@ -70,3 +74,77 @@ class TramoView(Frame):
         self.step_container.update_theme(theme)
         self.graph_panel.update_theme(theme)
         self.value_table.update_theme(theme)
+
+    def load_data(self, rut_data):
+        self.graph_panel.canvas.delete("all")
+        plotter = TramoPlotter(self.graph_panel.canvas, self.theme)
+        data_interna = rut_data["data"]
+        
+        datos = CrearVariables(data_interna)
+        analisis = AnalizarLimites(data_interna)
+        tabla = CrearTablaValores(datos["a"], datos["funcion"])
+        
+        for widget in self.summary.body.winfo_children():
+            widget.destroy()
+            
+        self.summary.add_line(f"Punto de análisis crítico: x = {datos['a']}")
+        self.summary.add_line(f"Tipo detectado: Discontinuidad {datos['tipo_discontinuidad']}")
+        self.summary.add_line(f"Motivo: {datos['explicacion']}")
+        self.summary.add_line(f"Conclusión de límites: {analisis['tablas_aproximacion']['conclusion']}")
+
+        pasos_formateados = []
+        
+        for i, paso in enumerate(datos["pasos_preliminares"]):
+            pasos_formateados.append({
+                "title": f"Paso {i+1}: Generación",
+                "explanation": paso
+            })
+            
+        pasos_formateados.append({
+            "title": "Evaluación Preliminar",
+            "explanation": analisis["explicacion_formal"]["preliminar"]
+        })
+        
+        for i, dem in enumerate(analisis["explicacion_formal"]["demostracion"]):
+            pasos_formateados.append({
+                "title": f"Demostración {i+1}",
+                "explanation": dem
+            })
+            
+        self.load_steps(pasos_formateados)
+
+        filas_tabla = []
+        
+        for fila in tabla["izquierda"]:
+            y_val = f"{fila['y']:.4f}" if fila['y'] is not None else "Indef"
+            filas_tabla.append((str(fila["x"]), y_val, "Izquierda"))
+            
+        for fila in tabla["derecha"]:
+            y_val = f"{fila['y']:.4f}" if fila['y'] is not None else "Indef"
+            filas_tabla.append((str(fila["x"]), y_val, "Derecha"))
+
+        self.value_table.set_rows(filas_tabla)
+
+        plotter = TramoPlotter(self.graph_panel.canvas, self.theme)
+        plotter.clear_plot()
+
+        tipo_disc = "removable"
+        if datos["tipo_discontinuidad"] == "salto":
+            tipo_disc = "jump"
+        elif datos["tipo_discontinuidad"] == "infinita":
+            tipo_disc = "infinite"
+
+        tramo_info = [{
+            "func": datos["funcion"],
+            "x_min": datos["a"] - 5,
+            "x_max": datos["a"] + 5,
+            "discontinuity_type": tipo_disc
+        }]
+
+        plotter.plot_piecewise(
+            tramo_info, 
+            datos["a"] - 5, 
+            datos["a"] + 5, 
+            -20, 
+            20
+        )

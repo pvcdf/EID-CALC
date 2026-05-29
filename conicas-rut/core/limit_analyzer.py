@@ -1,9 +1,5 @@
-<<<<<<< Updated upstream
-from tramo_function import CrearVariables
-=======
 from core.tramo_function import CrearVariables 
 from core.result_models import build_success, build_error
->>>>>>> Stashed changes
 
 def generar_tabla_aproximacion(funcion, a, direccion):
     deltas = [0.1, 0.01, 0.001, 0.0001]
