@@ -6,50 +6,66 @@ def CrearVariables(Rut):
     a = digitos["d3"]
     residuo = digitos["d8"] % 3
     
-    pasos = []
-    pasos.append(f"1. Punto critico 'a': Determinado por el digito d3 = {a}.")
-    pasos.append(f"2. Analisis de discontinuidad: d8 = {digitos['d8']}. Se calcula {digitos['d8']} modulo 3 = {residuo}.")
+    def funcion_removible(x):
+        return ((x - a) * (x + digitos["d1"])) / (x - a)
+        
+    def funcion_salto(x):
+        return (x < a) * (x + digitos["d2"]) + (x >= a) * (x + digitos["d4"])
+        
+    def funcion_infinita(x):
+        return (digitos["d5"] + 1) / (x - a)
+        
+    mapa_funciones = {
+        0: (funcion_removible, "removible", f"((x - {a})(x + {digitos['d1']})) / (x - {a})"),
+        1: (funcion_salto, "salto", f"{{ x + {digitos['d2']} (x < {a}) ; x + {digitos['d4']} (x >= {a}) }}"),
+        2: (funcion_infinita, "infinita", f"({digitos['d5']} + 1) / (x - {a})")
+    }
+    
+    funcion_generada, tipo, estructura = mapa_funciones[residuo]
+    
+    delta_lejano = 0.01
+    delta_cercano = 0.0001
+    
+    def analizar_lateral(signo_dir):
+        try:
+            y_lejano = funcion_generada(a + signo_dir * delta_lejano)
+            y_cercano = funcion_generada(a + signo_dir * delta_cercano)
+            
+            crecimiento = abs(y_cercano - y_lejano)
+            magnitud = abs(y_cercano)
+            signo = "+" if y_cercano > 0 else "-"
+            
+            if magnitud > 500 and crecimiento > 50:
+                return f"{signo}∞", y_cercano
+            
+            return "converge", y_cercano
+        except ZeroDivisionError:
+            return "+∞", float('inf')
 
-    if residuo == 2:
-        def FuncionInfinita(x):
-            return (digitos["d5"] + 1) / (x - a)
-            
-        funcion_generada = FuncionInfinita
-        explicacion = "es una discontinuidad infinita porque d8 deja residuo 2 al dividirse por 3"
-        tipo = "infinita"
-        pasos.append("3. Residuo 2 indica Discontinuidad Infinita.")
-        pasos.append("   Estructura algebraica generica: f(x) = (d5 + 1) / (x - a)")
-        pasos.append(f"   Funcion final reemplazada: f(x) = ({digitos['d5']} + 1) / (x - {a})")
+    estado_izq, val_izq = analizar_lateral(-1)
+    estado_der, val_der = analizar_lateral(1)
+    
+    if "∞" in estado_izq or "∞" in estado_der:
+        conclusion = "diverge"
+    elif abs(val_izq - val_der) > 0.01:
+        conclusion = "diverge por salto"
+    else:
+        conclusion = "converge"
         
-    elif residuo == 1:
-        def FuncionSalto(x):
-            if x < a:
-                return x + digitos["d2"]
-            elif x >= a:
-                return x + digitos["d4"]
-                
-        funcion_generada = FuncionSalto
-        explicacion = "es una discontinuidad de salto porque d8 deja residuo 1 al dividirse por 3"
-        tipo = "salto"
-        pasos.append("3. Residuo 1 indica Discontinuidad de Salto.")
-        pasos.append("   Estructura algebraica generica: f(x) = { x + d2 (x < a) ; x + d4 (x >= a) }")
-        pasos.append(f"   Funcion final reemplazada: f(x) = {{ x + {digitos['d2']} si x < {a} ; x + {digitos['d4']} si x >= {a} }}")
-        
-    elif residuo == 0:
-        def FuncionRemovible(x):
-            return ((x - a) * (x + digitos["d1"])) / (x - a)
-            
-        funcion_generada = FuncionRemovible
-        explicacion = "es una discontinuidad removible porque d8 deja residuo 0 al dividirse por 3"
-        tipo = "removible"
-        pasos.append("3. Residuo 0 indica Discontinuidad Removible.")
-        pasos.append("   Estructura algebraica generica: f(x) = ((x - a)(x + d1)) / (x - a)")
-        pasos.append(f"   Funcion final reemplazada: f(x) = ((x - {a})(x + {digitos['d1']})) / (x - {a})")
+    pasos = [
+        f"1. Punto critico 'a': Determinado por el digito d3 = {a}.",
+        f"2. Construccion matematica: d8 = {digitos['d8']} modulo 3 = {residuo}.",
+        f"   Estructura asignada: f(x) = {estructura}",
+        f"3. Analisis numerico de magnitud, tendencia y signo en x = {a}:",
+        f"   - Izquierda: tendencia = {estado_izq} (magnitud aprox {val_izq:.4f})",
+        f"   - Derecha: tendencia = {estado_der} (magnitud aprox {val_der:.4f})",
+        f"4. Conclusion: La funcion {conclusion}."
+    ]
 
     return {
         "funcion": funcion_generada,
         "a": a,
-        "explicacion": explicacion,
+        "explicacion": f"Discontinuidad {tipo}. Al evaluar matematicamente la tendencia, la funcion {conclusion}.",
         "tipo_discontinuidad": tipo,
         "digitos": digitos,
         "pasos_preliminares": pasos
