@@ -10,15 +10,22 @@ from ui.components.step_display import StepContainer
 
 
 class ConicView(Frame):
+    """Placeholder view for Cónicas section.
+
+    This creates three columns: left (coefficients/equations), center (graph),
+    right (steps / canonical form). Methods are provided to update theme and
+    to receive future data for plotting.
+    """
+
     def __init__(self, master, theme, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.theme = theme
         self._build()
 
     def _build(self):
-        self.columnconfigure(0, weight=0, minsize=250)   # izq: reducido de 380 → 250
-        self.columnconfigure(1, weight=1, minsize=500)   # centro: elástico, antes weight=0
-        self.columnconfigure(2, weight=0, minsize=300)   # der: fijo 300px (antes se cortaba)
+        self.columnconfigure(0, weight=0, minsize=380)
+        self.columnconfigure(1, weight=0, minsize=900)
+        self.columnconfigure(2, weight=1)
         self.rowconfigure(0, weight=1)
 
         self.left = PanelFrame(self, self.theme, padx=12, pady=12)
@@ -58,6 +65,7 @@ class ConicView(Frame):
         ])
 
     def load_steps(self, steps):
+        """Carga dinámicamente una lista de pasos matemáticos."""
         self.step_container.set_steps(steps)
 
     def update_theme(self, theme):
@@ -70,6 +78,7 @@ class ConicView(Frame):
         self.step_container.update_theme(theme)
         self.graph_panel.update_theme(theme)
 
+    # Placeholder for future data integration
     def load_conic(self, coefficients: dict):
         self.graph_panel.canvas.delete("graphgrid")
         self.graph_panel.canvas.create_text(200, 120, text=f"Coef: {coefficients}", fill=self.theme.fg)

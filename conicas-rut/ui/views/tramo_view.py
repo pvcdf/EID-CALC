@@ -8,15 +8,18 @@ from ui.components.step_display import StepContainer
 
 
 class TramoView(Frame):
+    """Placeholder view for Funciones por Tramos section.
+
+    Provides left summary, center graph placeholder and right value table placeholder.
+    """
+
     def __init__(self, master, theme, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.theme = theme
         self._build()
 
     def _build(self):
-        self.columnconfigure(0, weight=0, minsize=250)   # izq: fijo 250px
-        self.columnconfigure(1, weight=1, minsize=500)   # centro: elástico
-        self.columnconfigure(2, weight=0, minsize=280)   # der: fijo 280px
+        self.columnconfigure(1, weight=1)
         self.rowconfigure(0, weight=1)
 
         self.left = PanelFrame(self, self.theme, padx=12, pady=12)
@@ -58,6 +61,7 @@ class TramoView(Frame):
         self.value_table.pack(fill="both", expand=True, pady=(10, 0))
 
     def load_steps(self, steps):
+        """Carga desde un módulo matemático la lista de pasos por tramos."""
         self.step_container.set_steps(steps)
 
     def update_theme(self, theme):

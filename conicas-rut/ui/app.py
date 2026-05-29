@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 ﻿# conicas-rut/ui/app.py
+=======
+>>>>>>> parent of 2154406 (ACTUALIZACIÓN DE ARCHIVOS (ELIMINADOS Y MODIFICADOS))
 
 import sys
 import os
@@ -25,10 +28,17 @@ class App(tk.Tk):
         self.F = self.theme.fonts
         # Configuración ventana
         self.title("CónicasRUT — MAT1186")
+<<<<<<< HEAD
         self.configure(bg=self.theme.bg)
         self.resizable(True, True)
         self._maximize_window()
         # Estado
+=======
+        self.configure(bg=C["BG"])
+        self.resizable(False, False)
+        self._center_window(1800, 850)
+
+>>>>>>> parent of 2154406 (ACTUALIZACIÓN DE ARCHIVOS (ELIMINADOS Y MODIFICADOS))
         self.validated_rut = None
         self.pages = {}
         self.tab_btns = {}
@@ -38,6 +48,7 @@ class App(tk.Tk):
         self._show_input_screen()
         self._monitor_window_state()
 
+<<<<<<< HEAD
     # ── Utilidades ──────────────────────────────────────────────────────────
     def _maximize_window(self):
         """
@@ -47,6 +58,16 @@ class App(tk.Tk):
             self.state("zoomed")
         else:
             self.attributes("-zoomed", True)
+=======
+    # ── Utilidades ────────────────────────────────────────────────────────────
+    # Centra la ventana principal en la pantalla.
+    def _center_window(self, width, height):
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        x  = (sw - width)  // 2
+        y  = (sh - height) // 2
+        self.geometry(f"{width}x{height}+{x}+{y}")
+>>>>>>> parent of 2154406 (ACTUALIZACIÓN DE ARCHIVOS (ELIMINADOS Y MODIFICADOS))
 
     def _monitor_window_state(self):
         """
@@ -88,6 +109,7 @@ class App(tk.Tk):
             bg=self.theme.bg
         )
         self._root_frame.pack(fill="both", expand=True)
+<<<<<<< HEAD
         # Contenedor centrado
         center = tk.Frame(
             self._root_frame,
@@ -119,6 +141,29 @@ class App(tk.Tk):
             fg=self.theme.gray,
             font=self.F["small"]
         ).pack(anchor="center", pady=(2, 30))
+=======
+
+        # Botón de tema (esquina superior derecha)
+        tk.Button(
+            self._root_frame, text=self._theme_icon(),
+            bg=C["BG"], fg=C["WHITE"], font=self.F["head"],
+            bd=0, cursor="hand2", activebackground=C["BG"],
+            activeforeground=C["ACCENT"], command=self._toggle_theme
+        ).place(relx=1.0, x=-16, y=12, anchor="ne")
+
+        # Contenido centrado
+        center = tk.Frame(self._root_frame, bg=C["BG"])
+        center.place(relx=0.5, rely=0.5, anchor="center")
+
+        tk.Label(center, text="◈", bg=C["BG"], fg=C["ACCENT"],
+                 font=self.F["title"]).pack()
+        tk.Label(center, text="CónicasRUT", bg=C["BG"], fg=C["WHITE"],
+                 font=self.F["title"]).pack()
+        tk.Label(center, text="MAT1186 — Ingeniería Civil en Informática",
+                 bg=C["BG"], fg=C["GRAY"],
+                 font=self.F["small"]).pack(pady=(2, 30))
+
+>>>>>>> parent of 2154406 (ACTUALIZACIÓN DE ARCHIVOS (ELIMINADOS Y MODIFICADOS))
         input_card = InputPanel(
             center,
             self.theme,
@@ -128,15 +173,20 @@ class App(tk.Tk):
             padx=0,
             pady=0,
         )
+<<<<<<< HEAD
         input_card.pack(
             anchor="center",
             ipadx=0,
             ipady=0
         )
+=======
+        input_card.pack(ipadx=20, ipady=16)
+>>>>>>> parent of 2154406 (ACTUALIZACIÓN DE ARCHIVOS (ELIMINADOS Y MODIFICADOS))
 
         self._rut_entry = input_card.entry
         self._input_card = input_card
         self._rut_entry.insert(0, "Ej: 12345678-9")
+<<<<<<< HEAD
         self._rut_entry.bind(
             "<FocusIn>",
             self._clear_placeholder
@@ -145,17 +195,73 @@ class App(tk.Tk):
             "<Return>",
             lambda e: self._on_analizar()
         )
+=======
+        self._rut_entry.bind("<FocusIn>", self._clear_placeholder)
+        self._rut_entry.bind("<KeyRelease>", self._on_rut_keyrelease)
+        self._rut_entry.bind("<Return>", lambda e: self._on_analizar())
+
+>>>>>>> parent of 2154406 (ACTUALIZACIÓN DE ARCHIVOS (ELIMINADOS Y MODIFICADOS))
         self._status_var = tk.StringVar()
         self._input_card.status_label.configure(
             textvariable=self._status_var
         )
 
+<<<<<<< HEAD
+=======
+        vcmd = self.register(self._validate_rut_entry)
+        self._rut_entry.configure(validate="key", validatecommand=(vcmd, "%P"))
+
+    # Limpia el texto de ayuda cuando el campo RUT recibe foco.
+>>>>>>> parent of 2154406 (ACTUALIZACIÓN DE ARCHIVOS (ELIMINADOS Y MODIFICADOS))
     def _clear_placeholder(self, _event):
 
         if self._rut_entry.get().startswith("Ej:"):
             self._rut_entry.delete(0, "end")
 
+<<<<<<< HEAD
     def _on_analizar(self):
+=======
+    def _on_rut_keyrelease(self, _event):
+        value = self._rut_entry.get()
+        if value.isdigit() and len(value) == 8:
+            self._rut_entry.insert("end", "-")
+
+    # Valida el ingreso del RUT en tiempo real para limitar el formato.
+    def _validate_rut_entry(self, proposed):
+        if proposed == "" or proposed.startswith("Ej:"):
+            return True
+        allowed = set("0123456789Kk-")
+        if any(ch not in allowed for ch in proposed):
+            return False
+        if proposed.count("-") > 1:
+            return False
+        if "-" in proposed:
+            tail = proposed.split("-", 1)[1]
+            if len(tail) > 1:
+                return False
+        return True
+
+    # Valida el RUT y avanza hacia la interfaz principal de resultados.
+    def _on_analizar(self):
+        rut = self._rut_entry.get().strip().upper()
+
+        if not rut or rut.startswith("Ej:"):
+            self._status_var.set("Por favor ingresa tu RUT.")
+            return
+
+        if rut.count("-") != 1:
+            self._status_var.set("Formato inválido. Ejemplo: 12345678-9")
+            return
+
+        body, dv = rut.split("-", 1)
+        if not body.isdigit() or len(dv) != 1 or not (dv.isdigit() or dv == "K"):
+            self._status_var.set("Formato inválido. Debe tener un dígito verificador.")
+            return
+
+        self.validated_rut = rut
+        self._status_var.set("")
+        self.after(200, self._launch_main)
+>>>>>>> parent of 2154406 (ACTUALIZACIÓN DE ARCHIVOS (ELIMINADOS Y MODIFICADOS))
 
         rut = self._rut_entry.get().strip()
         if not rut or rut.startswith("Ej:"):
