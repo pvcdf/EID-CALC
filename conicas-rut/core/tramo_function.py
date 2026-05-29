@@ -1,8 +1,8 @@
-from rut_validator import validate_rut
+from core.rut_validator import validate_rut
 
 def CrearVariables(Rut):
     Variables = validate_rut(Rut)
-    digitos = Variables["named_digits"]
+    digitos = Variables["data"]["named_digits"]
     a = digitos["d3"]
     residuo = digitos["d8"] % 3
     
