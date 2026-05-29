@@ -1,3 +1,5 @@
+# conicas-rut/ui/views/tramo_view.py
+
 from tkinter import Frame, Label
 from ui.components.graph_panel import GraphPanel
 from ui.components.header import SectionHeader
