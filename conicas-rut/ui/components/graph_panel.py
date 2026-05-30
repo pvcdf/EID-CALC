@@ -78,12 +78,10 @@ class GraphPanel(CardFrame):
         self._draw_placeholder()
 
     def draw_point(self, x, y, label=None):
-        """Placeholder method for future point drawing."""
         self.canvas.create_oval(x - 4, y - 4, x + 4, y + 4, fill=self.theme.accent, outline="", tags="graphgrid")
         if label:
             self.canvas.create_text(x + 8, y - 8, text=label, fill=self.theme.fg, font=self.theme.fonts["small"], tags="graphgrid")
 
     def draw_discontinuity(self, x1, x2):
-        """Placeholder method for future discontinuity drawing."""
         self.canvas.create_line(x1, 0, x1, self.canvas.winfo_height(), fill=self.theme.red, dash=(4, 4), tags="graphgrid")
         self.canvas.create_line(x2, 0, x2, self.canvas.winfo_height(), fill=self.theme.red, dash=(4, 4), tags="graphgrid")

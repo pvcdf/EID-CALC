@@ -1,10 +1,4 @@
-"""
-Funciones para la graficación de cónicas (elipses, hipérbolas, parábolas).
-
-Proporciona métodos para renderizar cónicas en su forma canónica,
-mostrando focos, vértices y otros elementos especiales.
-"""
-
+# conicas-rut/graphics/conic_plotter.py
 from graphics.canvas_utils import CoordinateTransform, GridDrawer, ShapeDrawer
 
 class ConicPlotter:
@@ -13,10 +7,6 @@ class ConicPlotter:
     def __init__(self, canvas, theme):
         """
         Inicializa el plotter de cónicas.
-
-        Args:
-            canvas: Canvas de tkinter donde se dibujará
-            theme: Objeto de tema con colores y fuentes
         """
         self.canvas = canvas
         self.theme = theme
@@ -27,14 +17,7 @@ class ConicPlotter:
 
     def plot_ellipse(self, a, b, h, k, rotation=0):
         """
-        Grafica una elipse en forma canónica (x-h)²/a² + (y-k)²/b² = 1.
-
-        Args:
-            a: Semi-eje mayor (o semieje en dirección X)
-            b: Semi-eje menor (o semieje en dirección Y)
-            h: Traslación horizontal del centro
-            k: Traslación vertical del centro
-            rotation: Ángulo de rotación en grados (futuro)
+        Grafica una elipse en forma canónica.
         """
         # Configurar transformada de coordenadas
         margin = 2
@@ -86,15 +69,7 @@ class ConicPlotter:
 
     def plot_hyperbola(self, a, b, h, k, orientation="horizontal"):
         """
-        Grafica una hipérbola en forma canónica.
-        (x-h)²/a² - (y-k)²/b² = 1 (horizontal) o (y-k)²/a² - (x-h)²/b² = 1 (vertical).
-
-        Args:
-            a: Semi-eje transversal
-            b: Semi-eje conjugado
-            h: Traslación horizontal del centro
-            k: Traslación vertical del centro
-            orientation: "horizontal" o "vertical"
+        Grafica una hipérbola en forma canónica horizontal o vertical.
         """
         margin = 2
         transform = CoordinateTransform(
@@ -157,14 +132,8 @@ class ConicPlotter:
 
     def plot_parabola(self, p, h, k, orientation="vertical"):
         """
-        Grafica una parábola en forma canónica.
-        (x-h)² = 4p(y-k) (vertical) o (y-k)² = 4p(x-h) (horizontal).
+        Grafica una parábola en forma canónica vertical o horizontal.
 
-        Args:
-            p: Distancia focal
-            h: Traslación horizontal del vértice
-            k: Traslación vertical del vértice
-            orientation: "vertical" u "horizontal"
         """
         margin = 2
         if orientation == "vertical":
@@ -222,12 +191,8 @@ class ConicPlotter:
 
     def plot_circle(self, radius, h, k):
         """
-        Grafica una circunferencia en forma canónica (x-h)² + (y-k)² = r².
+        Grafica una circunferencia en forma canónica
 
-        Args:
-            radius: Radio de la circunferencia
-            h: Traslación horizontal del centro
-            k: Traslación vertical del centro
         """
         margin = 1
         transform = CoordinateTransform(
@@ -259,7 +224,7 @@ class ConicPlotter:
         # Centro
         ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2, size=4, label="C", theme=self.theme)
 
-        # Radio (línea desde centro a punto de la circunferencia)
+        # Radio 
         x_math = h + radius
         y_math = k
         x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)

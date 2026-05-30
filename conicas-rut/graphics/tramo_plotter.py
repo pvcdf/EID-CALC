@@ -1,9 +1,4 @@
-"""
-Funciones para la graficación de funciones por tramos.
-
-Proporciona métodos para renderizar funciones definidas a trozos,
-mostrando discontinuidades, huecos, asíntotas y valores puntuales.
-"""
+# conicas-rut/graphics/tramo_plotter.py
 
 from graphics.canvas_utils import CoordinateTransform, GridDrawer, ShapeDrawer
 
