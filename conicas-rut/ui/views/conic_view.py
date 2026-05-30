@@ -379,46 +379,41 @@ class ConicView(Frame):
                 entry.delete(0, "end")
                 entry.insert(0, values[key])
 
- # ── Entrada pública compatible con app.py ─────────────────────────────
- 
+
     def load_data(self, rut_result: dict):
-        """
-        Llamado desde app.py tras update_idletasks().
-        Si el pipeline ya fue cargado en __init__, solo renderiza el gráfico.
-        Si no (caso raro), reconstruye el pipeline desde el rut_result.
-        """
         if self.pipeline and self.pipeline.get("valid"):
             self.after(50, self._render_graph)
             return
- 
+
         # Fallback: construir pipeline desde rut_result
         from core.conic_pipeline import run_pipeline
         self.pipeline = run_pipeline(rut_result)
         if self.pipeline.get("valid"):
             self._load_pipeline(self.pipeline)
             self.after(50, self._render_graph)
- 
+
     # ── Renderizado del gráfico ───────────────────────────────────────────
- 
+
     def _render_graph(self):
         """Dibuja la cónica en el GraphPanel usando ConicPlotter."""
         if not self.pipeline or not self.pipeline.get("valid"):
             return
- 
+
         canvas = self.graph_panel.canvas
         canvas.delete("all")
- 
+        self.graph_panel.clear_placeholder()
+
         # Forzar que el canvas tenga dimensiones reales
         canvas.update_idletasks()
         if canvas.winfo_width() < 10:
             self.after(100, self._render_graph)
             return
- 
+
         td = self.pipeline["transform"]["data"]
         ct = self._conic_type
- 
+
         plotter = ConicPlotter(canvas, self.theme)
- 
+
         try:
             if ct == "circle":
                 plotter.plot_circle(
@@ -426,7 +421,7 @@ class ConicView(Frame):
                     h=td["center"][0],
                     k=td["center"][1],
                 )
- 
+
             elif ct == "ellipse":
                 # a² >= b² siempre; orientación determina qué eje es mayor
                 if td["a2"] >= td["b2"]:
@@ -440,14 +435,14 @@ class ConicView(Frame):
                         a=td["b"], b=td["a"],
                         h=td["center"][0], k=td["center"][1],
                     )
- 
+
             elif ct == "hyperbola":
                 plotter.plot_hyperbola(
                     a=td["a"], b=td["b"],
                     h=td["center"][0], k=td["center"][1],
                     orientation=td.get("orientation", "horizontal"),
                 )
- 
+
             elif ct == "parabola":
                 plotter.plot_parabola(
                     p=td["p"],
@@ -455,9 +450,8 @@ class ConicView(Frame):
                     k=td["vertex"][1],
                     orientation=td.get("orientation", "vertical"),
                 )
- 
+
         except Exception as e:
-            # Mostrar error en canvas sin romper la app
             canvas.create_text(
                 canvas.winfo_width() // 2,
                 canvas.winfo_height() // 2,
@@ -466,7 +460,7 @@ class ConicView(Frame):
                 font=self.theme.fonts["small"],
                 justify="center",
             )
-            
+
     # ── Tema ──────────────────────────────────────────────────────────────
 
     def update_theme(self, theme):
