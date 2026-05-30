@@ -1,21 +1,10 @@
 # conicas-rut/graphics/tramo_plotter.py
 
-"""
-Funciones para la graficación de funciones por tramos.
-
-Proporciona métodos para renderizar funciones definidas a trozos,
-mostrando discontinuidades, huecos, asíntotas y valores puntuales.
-"""
-
 from graphics.canvas_utils import CoordinateTransform, GridDrawer, ShapeDrawer
 
 class TramoPlotter:
-    """Grafica funciones definidas por tramos."""
-
     def __init__(self, canvas, theme):
         """
-        Inicializa el plotter de funciones por tramos.
-
         Args:
             canvas: Canvas de tkinter donde se dibujará
             theme: Objeto de tema con colores y fuentes
@@ -24,13 +13,10 @@ class TramoPlotter:
         self.theme = theme
 
     def clear_plot(self):
-        """Limpia todos los elementos dibujados excepto grid."""
         self.canvas.delete("function", "discontinuity", "hole", "labels")
 
     def plot_function(self, func, x_min, x_max, y_min, y_max, num_points=300):
         """
-        Grafica una función continua.
-
         Args:
             func: Función callable que toma x y retorna y
             x_min, x_max: Rango en X
@@ -66,8 +52,6 @@ class TramoPlotter:
 
     def plot_piecewise(self, pieces, x_min, x_max, y_min, y_max):
         """
-        Grafica una función definida por tramos.
-
         Args:
             pieces: Lista de diccionarios con estructura:
                 {
@@ -121,8 +105,6 @@ class TramoPlotter:
 
     def _draw_discontinuity(self, transform, x_math, disc_type):
         """
-        Dibuja una discontinuidad en el gráfico.
-
         Args:
             transform: Instancia de CoordinateTransform
             x_math: Coordenada X donde ocurre la discontinuidad
@@ -151,8 +133,6 @@ class TramoPlotter:
 
     def add_point(self, transform, x_math, y_math, color=None, label=None):
         """
-        Añade un punto especial al gráfico.
-
         Args:
             transform: Instancia de CoordinateTransform
             x_math, y_math: Coordenadas matemáticas
@@ -165,8 +145,6 @@ class TramoPlotter:
 
     def add_discontinuity_point(self, transform, x_math, y_math):
         """
-        Añade un punto de discontinuidad removible.
-
         Args:
             transform: Instancia de CoordinateTransform
             x_math, y_math: Coordenadas matemáticas del hueco
@@ -175,8 +153,6 @@ class TramoPlotter:
 
     def add_asymptote(self, transform, x_math=None, y_math=None):
         """
-        Añade una asíntota al gráfico.
-
         Args:
             transform: Instancia de CoordinateTransform
             x_math: Si es vertical, coordenada X

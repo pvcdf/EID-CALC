@@ -10,16 +10,7 @@ mostrando focos, vértices y otros elementos especiales.
 from graphics.canvas_utils import CoordinateTransform, GridDrawer, ShapeDrawer
 
 class ConicPlotter:
-    """Grafica cónicas en forma canónica."""
-
     def __init__(self, canvas, theme):
-        """
-        Inicializa el plotter de cónicas.
-
-        Args:
-            canvas: Canvas de tkinter donde se dibujará
-            theme: Objeto de tema con colores y fuentes
-        """
         self.canvas = canvas
         self.theme = theme
 
@@ -88,9 +79,6 @@ class ConicPlotter:
 
     def plot_hyperbola(self, a, b, h, k, orientation="horizontal"):
         """
-        Grafica una hipérbola en forma canónica.
-        (x-h)²/a² - (y-k)²/b² = 1 (horizontal) o (y-k)²/a² - (x-h)²/b² = 1 (vertical).
-
         Args:
             a: Semi-eje transversal
             b: Semi-eje conjugado
@@ -159,9 +147,6 @@ class ConicPlotter:
 
     def plot_parabola(self, p, h, k, orientation="vertical"):
         """
-        Grafica una parábola en forma canónica.
-        (x-h)² = 4p(y-k) (vertical) o (y-k)² = 4p(x-h) (horizontal).
-
         Args:
             p: Distancia focal
             h: Traslación horizontal del vértice
@@ -224,8 +209,6 @@ class ConicPlotter:
 
     def plot_circle(self, radius, h, k):
         """
-        Grafica una circunferencia en forma canónica (x-h)² + (y-k)² = r².
-
         Args:
             radius: Radio de la circunferencia
             h: Traslación horizontal del centro

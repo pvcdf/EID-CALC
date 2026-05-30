@@ -1,3 +1,5 @@
+#conicas-rut/core/value_table.py
+
 from core.tramo_function import CrearVariables
 
 def CrearTablaValores(a, funcion):

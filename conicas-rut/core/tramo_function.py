@@ -1,3 +1,5 @@
+#conicas-rut/core/tramo_function.py
+
 from core.rut_validator import validate_rut
 
 def CrearVariables(rut_data):

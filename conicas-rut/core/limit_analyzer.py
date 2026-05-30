@@ -1,3 +1,5 @@
+#conicas-rut/core/limit_analyzer.py
+
 from core.tramo_function import CrearVariables 
 from core.result_models import build_success, build_error
 
