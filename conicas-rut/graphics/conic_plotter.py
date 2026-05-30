@@ -1,3 +1,5 @@
+# conicas-rut/graphics/conic_plotter.py
+
 """
 Funciones para la graficación de cónicas (elipses, hipérbolas, parábolas).
 

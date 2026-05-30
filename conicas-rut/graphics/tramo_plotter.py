@@ -1,3 +1,5 @@
+# conicas-rut/graphics/tramo_plotter.py
+
 """
 Funciones para la graficación de funciones por tramos.
 
