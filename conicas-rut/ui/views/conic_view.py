@@ -18,30 +18,30 @@ class ConicView(Frame):
         self._build()
 
     def _build(self):
-        self.columnconfigure(0, weight=0, minsize=250)
+        self.columnconfigure(0, weight=0, minsize=260)
         self.columnconfigure(1, weight=1, minsize=500)
         self.columnconfigure(2, weight=0, minsize=300)
         self.rowconfigure(0, weight=1)
 
-        self.left = PanelFrame(self, self.theme, padx=12, pady=12)
-        self.left.grid(row=0, column=0, sticky="nsew")
-        SectionHeader(self.left, "Coeficientes generados", self.theme).pack(fill="x")
-        self.coefficients_card = CardFrame(self.left, self.theme, padx=12, pady=12)
-        self.coefficients_card.pack(fill="x", pady=(10, 0))
+        self.left = PanelFrame(self, self.theme, padx=14, pady=14)
+        self.left.grid(row=0, column=0, sticky="nsew", padx=(4, 2), pady=4)
+        SectionHeader(self.left, "Coeficientes", self.theme).pack(fill="x", pady=(0, 12))
+        self.coefficients_card = CardFrame(self.left, self.theme, padx=10, pady=10)
+        self.coefficients_card.pack(fill="x", pady=(0, 12))
 
-        self.center = PanelFrame(self, self.theme, padx=8, pady=8)
-        self.center.grid(row=0, column=1, sticky="nsew")
+        self.center = PanelFrame(self, self.theme, padx=10, pady=10)
+        self.center.grid(row=0, column=1, sticky="nsew", padx=2, pady=4)
         self.center.rowconfigure(0, weight=1)
         self.center.columnconfigure(0, weight=1)
-        self.graph_panel = GraphPanel(self.center, self.theme, title="Gráfico de cónica")
-        self.graph_panel.grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
+        self.graph_panel = GraphPanel(self.center, self.theme, title="Gráfico")
+        self.graph_panel.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
 
-        self.right = PanelFrame(self, self.theme, padx=12, pady=12)
-        self.right.grid(row=0, column=2, sticky="nsew")
-        self.result_card = ResultSection(self.right, self.theme, "Pasos - Forma canónica")
+        self.right = PanelFrame(self, self.theme, padx=14, pady=14)
+        self.right.grid(row=0, column=2, sticky="nsew", padx=(2, 4), pady=4)
+        self.result_card = ResultSection(self.right, self.theme, "Pasos")
         self.result_card.pack(fill="both", expand=True)
         self.step_container = StepContainer(self.result_card.body, self.theme)
-        self.step_container.pack(fill="both", expand=True)
+        self.step_container.pack(fill="both", expand=True, padx=2, pady=2)
 
     def load_steps(self, steps):
         self.step_container.set_steps(steps)
@@ -63,12 +63,19 @@ class ConicView(Frame):
         
         for widget in self.coefficients_card.winfo_children():
             widget.destroy()
-            
-        Label(self.coefficients_card, text=f"A = {coef_data['A']:.2f}", bg=self.theme.card, fg=self.theme.fg, font=self.theme.fonts["mono"]).pack(anchor="w")
-        Label(self.coefficients_card, text=f"B = {coef_data['B']:.2f}", bg=self.theme.card, fg=self.theme.fg, font=self.theme.fonts["mono"]).pack(anchor="w")
-        Label(self.coefficients_card, text=f"C = {coef_data['C']}", bg=self.theme.card, fg=self.theme.fg, font=self.theme.fonts["mono"]).pack(anchor="w")
-        Label(self.coefficients_card, text=f"D = {coef_data['D']}", bg=self.theme.card, fg=self.theme.fg, font=self.theme.fonts["mono"]).pack(anchor="w")
-        Label(self.coefficients_card, text=f"E = {coef_data['E']}", bg=self.theme.card, fg=self.theme.fg, font=self.theme.fonts["mono"]).pack(anchor="w")
+        
+        coef_labels = [
+            ("A", coef_data['A']),
+            ("B", coef_data['B']),
+            ("C", coef_data['C']),
+            ("D", coef_data['D']),
+            ("E", coef_data['E'])
+        ]
+        
+        for i, (name, value) in enumerate(coef_labels):
+            color = self.theme.accent if i % 2 == 0 else self.theme.accent2
+            Label(self.coefficients_card, text=f"{name} = {value:.2f}" if isinstance(value, float) else f"{name} = {value}", 
+                  bg=self.theme.card, fg=color, font=self.theme.fonts["mono"]).pack(anchor="w", pady=4, padx=4)
 
         class_result = classify_conic(coef_result)
         if not class_result["valid"]: return

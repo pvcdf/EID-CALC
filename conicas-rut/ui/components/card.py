@@ -6,7 +6,7 @@ import tkinter as tk
 class CardFrame(tk.Frame):
     """Marco base para componentes de tarjeta con tema personalizado."""
     def __init__(self, master, theme, *args, **kwargs):
-        super().__init__(master, bg=theme.card, *args, **kwargs)
+        super().__init__(master, bg=theme.card, relief="flat", borderwidth=1, *args, **kwargs)
         self.theme = theme
 
     def update_theme(self, theme):

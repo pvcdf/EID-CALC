@@ -18,21 +18,21 @@ class TramoView(Frame):
         self._build()
 
     def _build(self):
-        self.columnconfigure(0, weight=0, minsize=250)   # izq: fijo 250px
+        self.columnconfigure(0, weight=0, minsize=260)   # izq: fijo 260px
         self.columnconfigure(1, weight=1, minsize=500)   # centro: elástico
         self.columnconfigure(2, weight=0, minsize=280)   # der: fijo 280px
         self.rowconfigure(0, weight=1)
 
-        self.left = PanelFrame(self, self.theme, padx=12, pady=12)
-        self.left.grid(row=0, column=0, sticky="nsew")
-        SectionHeader(self.left, "Función generada", self.theme).pack(fill="x")
+        self.left = PanelFrame(self, self.theme, padx=14, pady=14)
+        self.left.grid(row=0, column=0, sticky="nsew", padx=(4, 2), pady=4)
+        SectionHeader(self.left, "Función", self.theme).pack(fill="x", pady=(0, 12))
         self.summary = ResultSection(self.left, self.theme, "Resumen")
-        self.summary.pack(fill="x", pady=(10, 0))
+        self.summary.pack(fill="x", pady=(0, 12))
         self.summary.add_line("Se ha generado una función por tramos basada en el RUT ingresado.")
         self.summary.add_line("Los intervalos y valores se muestran en la tabla de la derecha.")
 
         self.step_container = StepContainer(self.left, self.theme)
-        self.step_container.pack(fill="both", expand=True, pady=(10, 0))
+        self.step_container.pack(fill="both", expand=True, pady=(8, 0))
         self.load_steps([
             {
                 "title": "Paso 1: Definir intervalos",
@@ -48,16 +48,16 @@ class TramoView(Frame):
             },
         ])
 
-        self.center = PanelFrame(self, self.theme, padx=8, pady=8)
-        self.center.grid(row=0, column=1, sticky="nsew")
+        self.center = PanelFrame(self, self.theme, padx=10, pady=10)
+        self.center.grid(row=0, column=1, sticky="nsew", padx=2, pady=4)
         self.center.rowconfigure(0, weight=1)
         self.center.columnconfigure(0, weight=1)
-        self.graph_panel = GraphPanel(self.center, self.theme, title="Gráfico por tramos")
-        self.graph_panel.grid(row=0, column=0, sticky="nsew")
+        self.graph_panel = GraphPanel(self.center, self.theme, title="Gráfico")
+        self.graph_panel.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
 
-        self.right = PanelFrame(self, self.theme, padx=12, pady=12)
-        self.right.grid(row=0, column=2, sticky="nsew")
-        SectionHeader(self.right, "Tabla de valores", self.theme).pack(fill="x")
+        self.right = PanelFrame(self, self.theme, padx=14, pady=14)
+        self.right.grid(row=0, column=2, sticky="nsew", padx=(2, 4), pady=4)
+        SectionHeader(self.right, "Tabla", self.theme).pack(fill="x", pady=(0, 12))
         self.value_table = ValueTable(self.right, self.theme, padx=6, pady=6)
         self.value_table.pack(fill="both", expand=True, pady=(10, 0))
 
