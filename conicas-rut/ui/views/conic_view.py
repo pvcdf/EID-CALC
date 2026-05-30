@@ -102,7 +102,7 @@ class ConicView(Frame):
         plotter = ConicPlotter(self.graph_panel.canvas, self.theme)
         
         if conic_type == "circle":
-            plotter.plot_ellipse(trans_data["radius"], trans_data["radius"], trans_data["center"][0], trans_data["center"][1])
+            plotter.plot_circle(trans_data["radius"], trans_data["center"][0], trans_data["center"][1])
         elif conic_type == "ellipse":
             plotter.plot_ellipse(trans_data["a"], trans_data["b"], trans_data["center"][0], trans_data["center"][1])
         elif conic_type == "hyperbola":

@@ -201,6 +201,68 @@ class ConicPlotter:
             # Foco y directriz
             ShapeDrawer.draw_point(self.canvas, transform, h, k + p, self.theme.yellow, size=5, label="F", theme=self.theme)
             ShapeDrawer.draw_asymptote(self.canvas, transform, y_math=k - p, color=self.theme.yellow)
+        
+        else:  # horizontal
+            for i in range(num_points + 1):
+                y_math = k - 4 * abs(p) + (i / num_points) * 8 * abs(p)
+                x_math = h + (y_math - k) ** 2 / (4 * p)
+                x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+                if i > 0:
+                    prev_y = k - 4 * abs(p) + ((i - 1) / num_points) * 8 * abs(p)
+                    prev_x = h + (prev_y - k) ** 2 / (4 * p)
+                    prev_x_c, prev_y_c = transform.math_to_canvas(prev_x, prev_y)
+                    self.canvas.create_line(prev_x_c, prev_y_c, x_canvas, y_canvas, fill=self.theme.accent, width=2, tags="conic")
+
+            # Foco y directriz
+            ShapeDrawer.draw_point(self.canvas, transform, h + p, k, self.theme.yellow, size=5, label="F", theme=self.theme)
+            ShapeDrawer.draw_asymptote(self.canvas, transform, x_math=h - p, color=self.theme.yellow)
 
         # Vértice
         ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.green, size=4, label="V", theme=self.theme)
+
+    def plot_circle(self, radius, h, k):
+        """
+        Grafica una circunferencia en forma canónica (x-h)² + (y-k)² = r².
+
+        Args:
+            radius: Radio de la circunferencia
+            h: Traslación horizontal del centro
+            k: Traslación vertical del centro
+        """
+        margin = 1
+        transform = CoordinateTransform(
+            self.canvas.winfo_width(), self.canvas.winfo_height(),
+            h - radius - margin, h + radius + margin,
+            k - radius - margin, k + radius + margin
+        )
+
+        # Dibujar grilla y ejes
+        GridDrawer.draw_grid(self.canvas, transform, grid_spacing=1, grid_color=self.theme.border, axis_color=self.theme.gray)
+        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=1)
+
+        # Graficar circunferencia usando aproximación con puntos
+        num_points = 200
+        import math
+        points = []
+        for i in range(num_points + 1):
+            angle = (i / num_points) * 2 * math.pi
+            x_math = h + radius * math.cos(angle)
+            y_math = k + radius * math.sin(angle)
+            x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+            if points:
+                self.canvas.create_line(
+                    points[-1][0], points[-1][1], x_canvas, y_canvas,
+                    fill=self.theme.accent, width=2, tags="conic"
+                )
+            points.append((x_canvas, y_canvas))
+
+        # Centro
+        ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2, size=4, label="C", theme=self.theme)
+
+        # Radio (línea desde centro a punto de la circunferencia)
+        x_math = h + radius
+        y_math = k
+        x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+        origin_x, origin_y = transform.math_to_canvas(h, k)
+        self.canvas.create_line(origin_x, origin_y, x_canvas, y_canvas, fill=self.theme.gray, width=1, dash=(2, 2), tags="conic")
+        ShapeDrawer.draw_point(self.canvas, transform, x_math, y_math, self.theme.green, size=3, label="P", theme=self.theme)
