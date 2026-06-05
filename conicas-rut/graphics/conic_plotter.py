@@ -204,3 +204,51 @@ class ConicPlotter:
 
         # Vértice
         ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.green, size=4, label="V", theme=self.theme)
+
+    def clear_user_elements(self):
+        """Limpia todos los elementos de entrada del usuario."""
+        self.canvas.delete("user_input")
+
+    def draw_user_elements(self, elements, transform):
+        """
+        Dibuja elementos ingresados por el usuario (centro, foco, vértice).
+        
+        Args:
+            elements: Dict con claves 'centro', 'foco', 'vertice' y tuplas (x, y) como valores
+            transform: CoordinateTransform para convertir coordenadas matemáticas a canvas
+        """
+        import math
+        
+        # Primero limpiar elementos anteriores
+        self.canvas.delete("user_input")
+        
+        # Colores para cada tipo de elemento
+        colors = {
+            "centro": self.theme.accent2,  # Acento 2 (podría ser blanco/neutro)
+            "foco": self.theme.yellow,
+            "vertice": self.theme.green
+        }
+        
+        # Dibujar cada elemento
+        for clave, coord in elements.items():
+            if coord and len(coord) == 2:
+                x_math, y_math = coord
+                x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+                color = colors.get(clave, self.theme.fg)
+                
+                # Dibujar círculo pequeño
+                radius = 4
+                self.canvas.create_oval(
+                    x_canvas - radius, y_canvas - radius,
+                    x_canvas + radius, y_canvas + radius,
+                    fill=color, outline=color, tags="user_input"
+                )
+                
+                # Dibujar etiqueta
+                label_map = {"centro": "C", "foco": "F", "vertice": "V"}
+                label = label_map.get(clave, clave[0].upper())
+                self.canvas.create_text(
+                    x_canvas + 8, y_canvas - 8,
+                    text=label, fill=color, font=("Arial", 9, "bold"),
+                    tags="user_input"
+                )
