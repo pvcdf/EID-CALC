@@ -16,10 +16,10 @@ class SectionHeader(tk.Frame):
             font=theme.fonts["head"],
             anchor="w",
         )
-        self.title_label.pack(fill="x")
+        self.title_label.pack(fill="x", padx=2, pady=(0, 4))
 
-        self.underline = tk.Frame(self, bg=theme.accent, height=2)
-        self.underline.pack(fill="x", pady=(6, 12))
+        self.underline = tk.Frame(self, bg=theme.accent, height=3)
+        self.underline.pack(fill="x", pady=(0, 10))
 
     def update_theme(self, theme):
         self.theme = theme

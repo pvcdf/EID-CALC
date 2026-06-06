@@ -5,7 +5,7 @@ import tkinter as tk
 
 class PanelFrame(tk.Frame):
     def __init__(self, master, theme, *args, **kwargs):
-        super().__init__(master, bg=theme.panel, *args, **kwargs)
+        super().__init__(master, bg=theme.panel, relief="solid", borderwidth=0, *args, **kwargs)
         self.theme = theme
 
     def update_theme(self, theme):

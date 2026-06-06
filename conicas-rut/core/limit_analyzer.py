@@ -1,4 +1,4 @@
-from core.tramo_function import CrearVariables
+from core.tramo_function import CrearVariables 
 from core.result_models import build_success, build_error
 
 def generar_tabla_aproximacion(funcion, a, direccion):
@@ -65,55 +65,40 @@ def limites_algebraicos_estructurados(tipo, a, digitos):
     return None, None, explicacion_formal
 
 def AnalizarLimites(Rut):
-    try:
-        datos = CrearVariables(Rut)
-        funcion = datos["funcion"]
-        a = datos["a"]
-        tipo = datos["tipo_discontinuidad"]
-        digitos = datos["digitos"]
+    datos = CrearVariables(Rut)
+    funcion = datos["funcion"]
+    a = datos["a"]
+    tipo = datos["tipo_discontinuidad"]
+    digitos = datos["digitos"]
 
-        tabla_izq = generar_tabla_aproximacion(funcion, a, "izquierda")
-        tabla_der = generar_tabla_aproximacion(funcion, a, "derecha")
-        valor_en_punto = evaluar_en_punto(funcion, a)
+    tabla_izq = generar_tabla_aproximacion(funcion, a, "izquierda")
+    tabla_der = generar_tabla_aproximacion(funcion, a, "derecha")
+    valor_en_punto = evaluar_en_punto(funcion, a)
+    
+    lim_izq_alg, lim_der_alg, explicacion = limites_algebraicos_estructurados(tipo, a, digitos)
+
+    if tipo == "infinita":
+        limite_existe = False
+        es_continua = False
+        conclusion_tabla = f"Ambos limites divergen hacia infinito, confirmando asintota en x = {a}."
+    else:
+        limite_existe = lim_izq_alg == lim_der_alg
+        es_continua = limite_existe and valor_en_punto is not None and abs(valor_en_punto - lim_izq_alg) < 0.0001
         
-        lim_izq_alg, lim_der_alg, explicacion = limites_algebraicos_estructurados(tipo, a, digitos)
-
-        if tipo == "infinita":
-            limite_existe = False
-            es_continua = False
-            conclusion_tabla = f"Ambos limites divergen hacia infinito, confirmando asintota en x = {a}."
+        if limite_existe:
+            conclusion_tabla = f"Ambos limites se aproximan a {lim_izq_alg}, por lo tanto el limite bilateral existe."
         else:
-            limite_existe = lim_izq_alg == lim_der_alg
-            es_continua = limite_existe and valor_en_punto is not None and abs(valor_en_punto - lim_izq_alg) < 0.0001
-            
-            if limite_existe:
-                conclusion_tabla = f"Ambos limites se aproximan a {lim_izq_alg}, por lo tanto el limite bilateral existe."
-            else:
-                conclusion_tabla = f"Los limites se aproximan a valores distintos ({lim_izq_alg} y {lim_der_alg}), el limite bilateral no existe."
+            conclusion_tabla = f"Los limites se aproximan a valores distintos ({lim_izq_alg} y {lim_der_alg}), el limite bilateral no existe."
 
-        pasos = datos.get("pasos_preliminares", [])
-        pasos.append(explicacion["identificacion"])
-        pasos.append(explicacion["preliminar"])
-        pasos.extend(explicacion["demostracion"])
-        pasos.append(tabla_izq["texto"])
-        pasos.append(tabla_der["texto"])
-        pasos.append(conclusion_tabla)
-
-        return build_success(
-            explanation=conclusion_tabla,
-            steps=pasos,
-            data={
-                "a": a,
-                "valor_en_punto": valor_en_punto,
-                "limite_existe": limite_existe,
-                "es_continua": es_continua,
-                "tablas_aproximacion": {
-                    "izquierda": tabla_izq["texto"],
-                    "derecha": tabla_der["texto"],
-                    "conclusion": conclusion_tabla
-                },
-                "explicacion_formal": explicacion
-            }
-        )
-    except Exception as e:
-        return build_error(error=f"Fallo en el analisis de limites: {str(e)}")
+    return {
+        "a": a,
+        "valor_en_punto": valor_en_punto,
+        "limite_existe": limite_existe,
+        "es_continua": es_continua,
+        "tablas_aproximacion": {
+            "izquierda": tabla_izq["texto"],
+            "derecha": tabla_der["texto"],
+            "conclusion": conclusion_tabla
+        },
+        "explicacion_formal": explicacion
+    }

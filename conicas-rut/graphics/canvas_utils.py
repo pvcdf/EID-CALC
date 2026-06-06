@@ -1,25 +1,10 @@
-"""
-Utilidades compartidas para renderizado en canvas.
-
-Proporciona funciones para transformaciones de coordenadas, escalado y
-conversión entre espacios de coordenadas matemáticas y canvas.
-"""
+# canvas_utils.py
 
 class CoordinateTransform:
     """Gestiona la transformación entre coordenadas matemáticas y canvas."""
 
     def __init__(self, canvas_width, canvas_height, math_xmin, math_xmax, math_ymin, math_ymax):
-        """
-        Inicializa el transformador de coordenadas.
 
-        Args:
-            canvas_width: Ancho del canvas en píxeles
-            canvas_height: Alto del canvas en píxeles
-            math_xmin: Valor mínimo en eje X matemático
-            math_xmax: Valor máximo en eje X matemático
-            math_ymin: Valor mínimo en eje Y matemático
-            math_ymax: Valor máximo en eje Y matemático
-        """
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
         self.math_xmin = math_xmin
@@ -39,13 +24,6 @@ class CoordinateTransform:
     def math_to_canvas(self, x_math, y_math):
         """
         Convierte coordenadas matemáticas a coordenadas del canvas.
-
-        Args:
-            x_math: Coordenada X en espacio matemático
-            y_math: Coordenada Y en espacio matemático
-
-        Returns:
-            Tupla (x_canvas, y_canvas) en píxeles
         """
         x_canvas = x_math * self.scale_x + self.offset_x
         y_canvas = self.offset_y - y_math * self.scale_y
@@ -55,12 +33,6 @@ class CoordinateTransform:
         """
         Convierte coordenadas del canvas a coordenadas matemáticas.
 
-        Args:
-            x_canvas: Coordenada X en píxeles
-            y_canvas: Coordenada Y en píxeles
-
-        Returns:
-            Tupla (x_math, y_math) en espacio matemático
         """
         x_math = (x_canvas - self.offset_x) / self.scale_x
         y_math = (self.offset_y - y_canvas) / self.scale_y
@@ -156,15 +128,6 @@ class ShapeDrawer:
     def draw_point(canvas, transform, x_math, y_math, color, size=4, label=None, theme=None):
         """
         Dibuja un punto en coordenadas matemáticas.
-
-        Args:
-            canvas: Canvas de tkinter
-            transform: Instancia de CoordinateTransform
-            x_math, y_math: Coordenadas matemáticas
-            color: Color del punto
-            size: Radio del punto en píxeles
-            label: Etiqueta opcional del punto
-            theme: Objeto de tema para fuentes
         """
         x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
         canvas.create_oval(
@@ -182,12 +145,6 @@ class ShapeDrawer:
         """
         Dibuja un segmento de línea entre dos puntos matemáticos.
 
-        Args:
-            canvas: Canvas de tkinter
-            transform: Instancia de CoordinateTransform
-            x1_math, y1_math, x2_math, y2_math: Coordenadas matemáticas
-            color: Color de la línea
-            width: Grosor de la línea
         """
         x1_canvas, y1_canvas = transform.math_to_canvas(x1_math, y1_math)
         x2_canvas, y2_canvas = transform.math_to_canvas(x2_math, y2_math)
@@ -197,13 +154,6 @@ class ShapeDrawer:
     def draw_asymptote(canvas, transform, x_math=None, y_math=None, color="#F87171"):
         """
         Dibuja una asíntota (vertical u horizontal).
-
-        Args:
-            canvas: Canvas de tkinter
-            transform: Instancia de CoordinateTransform
-            x_math: Si es vertical, coordenada X
-            y_math: Si es horizontal, coordenada Y
-            color: Color de la asíntota
         """
         if x_math is not None:
             # Asíntota vertical
@@ -218,13 +168,6 @@ class ShapeDrawer:
     def draw_hole(canvas, transform, x_math, y_math, color="#F87171", size=6):
         """
         Dibuja un hueco (discontinuidad removible).
-
-        Args:
-            canvas: Canvas de tkinter
-            transform: Instancia de CoordinateTransform
-            x_math, y_math: Coordenadas matemáticas
-            color: Color del hueco
-            size: Radio del hueco en píxeles
         """
         x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
         canvas.create_oval(

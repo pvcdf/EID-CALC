@@ -14,7 +14,7 @@ class ValueTable(CardFrame):
         self.headers = tk.Frame(self, bg=self.theme.card)
         self.headers.pack(fill="x", pady=(8, 6))
 
-        for text, weight in [("x", 1), ("y", 1), ("f(x)", 1)]:
+        for text, weight in [("x", 1), ("f(x)", 1), ("Aproximación", 1)]:
             tk.Label(
                 self.headers,
                 text=text,
