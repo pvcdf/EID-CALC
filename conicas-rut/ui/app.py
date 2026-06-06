@@ -229,6 +229,8 @@ class App(tk.Tk):
                 relwidth=1,
                 relheight=1
             )
+        # Inicializar datos de la vista cónica
+        self.pages["conica"].load_data()
         self._show_tab("conica")
 
     # ── Barra superior ──────────────────────────────────────────────────────
