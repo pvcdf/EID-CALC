@@ -192,46 +192,50 @@ class App(tk.Tk):
     # ── Interfaz principal ──────────────────────────────────────────────────
     def _launch_main(self):
 
-        from ui.views.conic_view import ConicView
-        from ui.views.tramo_view import TramoView
+            from ui.views.conic_view import ConicView
+            from ui.views.tramo_view import TramoView
 
-        if hasattr(self, "_root_frame"):
-            self._root_frame.destroy()
-        self._root_frame = tk.Frame(
-            self,
-            bg=self.theme.bg
-        )
-        self._root_frame.pack(
-            fill="both",
-            expand=True
-        )
-        self._build_topbar(self._root_frame)
-        container = tk.Frame(
-            self._root_frame,
-            bg=self.theme.bg
-        )
-        container.pack(
-            fill="both",
-            expand=True
-        )
-        self.pages["conica"] = ConicView(
-            container,
-            self.theme
-        )
-        self.pages["tramos"] = TramoView(container, self.theme)
-        self.pages["tramos"].load_data(self.validated_rut)
-        for page in self.pages.values():
-            page.place(
-                x=0,
-                y=0,
-                relwidth=1,
-                relheight=1
+            if hasattr(self, "_root_frame"):
+                self._root_frame.destroy()
+                
+            self._root_frame = tk.Frame(
+                self,
+                bg=self.theme.bg
             )
-        self._show_tab("conica")
-        
-        self.update_idletasks()
-        self.pages["conica"].load_data(self.validated_rut)
-        self.pages["tramos"].load_data(self.validated_rut)
+            self._root_frame.pack(
+                fill="both",
+                expand=True
+            )
+            
+            self._build_topbar(self._root_frame)
+            
+            container = tk.Frame(
+                self._root_frame,
+                bg=self.theme.bg
+            )
+            container.pack(
+                fill="both",
+                expand=True
+            )
+            
+            self.pages["conica"] = ConicView(
+                container,
+                self.theme
+            )
+            self.pages["tramos"] = TramoView(container, self.theme)
+
+            for page in self.pages.values():
+                page.place(
+                    x=0,
+                    y=0,
+                    relwidth=1,
+                    relheight=1
+                )
+                
+            self._show_tab("conica")
+            
+            self.pages["conica"].load_data(self.validated_rut)
+            self.pages["tramos"].load_data(self.validated_rut)
 
     # ── Barra superior ──────────────────────────────────────────────────────
     def _build_topbar(self, parent):
