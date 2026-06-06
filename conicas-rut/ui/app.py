@@ -189,22 +189,35 @@ class App(tk.Tk):
 
     # ── Barra superior ──────────────────────────────────────────────────────
     def _build_topbar(self, parent):
-
         self._topbar = tk.Frame(parent, bg=self.theme.panel, height=56)
         self._topbar.pack(fill="x")
         self._topbar.pack_propagate(False)
 
         # Logo
-        logo = tk.Frame( self._topbar, bg=self.theme.panel)
-        logo.pack( side="left", padx=20, pady=10)
-        tk.Label( logo, text="◈", bg=self.theme.panel, fg=self.theme.accent, font=self.F["label"] 
-        ).pack(side="left", padx=(0, 6))
+        logo = tk.Frame(self._topbar, bg=self.theme.panel)
+        logo.pack(side="left", padx=20, pady=10)
+        tk.Label(logo, text="◈", bg=self.theme.panel, fg=self.theme.accent,
+                font=self.F["label"]).pack(side="left", padx=(0, 6))
+        tk.Label(logo, text="CónicasRUT", bg=self.theme.panel, fg=self.theme.fg,
+                font=self.F["label"]).pack(side="left")
+        tk.Label(logo, text=f"  ·  {self.validated_rut['data']['clean_rut']}",
+                bg=self.theme.panel, fg=self.theme.gray,
+                font=self.F["small"]).pack(side="left")
 
-        tk.Label( logo, text="CónicasRUT", bg=self.theme.panel, fg=self.theme.fg, font=self.F["label"]
-        ).pack(side="left")
-
-        tk.Label( logo, text=f"  ·  {self.validated_rut['data']['clean_rut']}", bg=self.theme.panel, fg=self.theme.gray, font=self.F["small"]
-        ).pack(side="left")
+        # ── Botón Nuevo RUT ──────────────────────────────────────────────
+        tk.Button(
+            self._topbar,
+            text="← Nuevo RUT",
+            bg=self.theme.panel, fg=self.theme.gray,
+            font=self.F["small"],
+            bd=0, cursor="hand2",
+            padx=14, pady=14,
+            relief="flat",
+            activebackground=self.theme.card,
+            activeforeground=self.theme.fg,
+            command=self._show_input_screen,
+        ).pack(side="left", padx=(8, 0))
+        # ────────────────────────────────────────────────────────────────
 
         # Tabs
         tabs = tk.Frame(self._topbar, bg=self.theme.panel)
@@ -215,7 +228,6 @@ class App(tk.Tk):
             ("conica", "⬡  Secciones Cónicas"),
             ("tramos", "∿  Funciones por Tramos"),
         ]:
-
             btn = tk.Button(tabs, text=label, bg=self.theme.panel, fg=self.theme.gray,
                 font=self.F["small"], bd=0, cursor="hand2", padx=14, pady=14,
                 activebackground=self.theme.accent,
