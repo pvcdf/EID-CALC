@@ -14,5 +14,4 @@ __all__ = [
     "ResultSection",
     "ValueTable",
     "StepContainer",
-    "StepItem",
 ]
