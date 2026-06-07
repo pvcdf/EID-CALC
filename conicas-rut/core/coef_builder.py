@@ -111,21 +111,24 @@ def build_coefficients(rut_data: dict) -> dict:
     # ── PASO 2: Ajustes ───────────────────────────────────────────────────
     steps.append({
         "title": "Paso 2 — Ajustes para variedad de cónicas",
-        "explanation": "Se aplican reglas para forzar el tipo de cónica según los dígitos.",
+        "explanation": (
+            "Se aplican las reglas del PDF en orden. "
+            "Cada condición es independiente: si aplica, modifica el coeficiente."
+        ),
     })
 
-    # Regla 1
+    # ── Regla 1: d8 impar → B = -B ───────────────────────────────────────
     if d8 % 2 != 0:
         B_num = -B_num
         B_val = -B_val
         adjustments_applied.append("d8_impar: B negado")
     steps.append({
         "title": f"Regla 1 — d8 = {d8}  ({'impar' if d8 % 2 != 0 else 'par'})",
-        "explanation": "B = -B" if d8 % 2 != 0 else "B no cambia",
+        "explanation": "d8 impar → B = −B" if d8 % 2 != 0 else "d8 par → B no cambia",
         "result": fraccion_a_texto(B_num, B_den) if d8 % 2 != 0 else None,
     })
 
-    # Regla 2
+    # ── Regla 2: d1 == d2 → B = A ────────────────────────────────────────
     if d1 == d2:
         B_num, B_den, B_val = A_num, A_den, A_val
         adjustments_applied.append("d1==d2: B igualado a A")
@@ -135,7 +138,7 @@ def build_coefficients(rut_data: dict) -> dict:
         "result": fraccion_a_texto(B_num, B_den) if d1 == d2 else None,
     })
 
-    # Regla 3
+    # ── Regla 3: (d5+d6) múltiplo de 3 → parábola ────────────────────────
     suma_56 = d5 + d6
     if suma_56 % 3 == 0:
         if d7 % 2 == 0:
@@ -145,7 +148,10 @@ def build_coefficients(rut_data: dict) -> dict:
             A_num, A_den, A_val = 0, 1, 0.0
             adjustments_applied.append("parabola_horizontal: A=0")
     steps.append({
-        "title": f"Regla 3 — d5+d6 = {suma_56}  ({'múltiplo de 3' if suma_56 % 3 == 0 else 'no múltiplo de 3'})",
+        "title": (
+            f"Regla 3 — d5+d6 = {suma_56}  "
+            f"({'múltiplo de 3' if suma_56 % 3 == 0 else 'no múltiplo de 3'})"
+        ),
         "explanation": (
             f"parábola {'vertical (B=0)' if d7 % 2 == 0 else 'horizontal (A=0)'}"
             if suma_56 % 3 == 0 else "sin ajuste de parábola"

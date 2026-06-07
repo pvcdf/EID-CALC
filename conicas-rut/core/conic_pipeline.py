@@ -40,7 +40,21 @@ def run_pipeline(rut_result: dict) -> dict:
         conic_type=classifier["conic_type"],
         A=d["A"], B=d["B"], C=d["C"], D=d["D"], E=d["E"],
     )
+
     if not transform["valid"]:
+
+        # Permitir que las cónicas imaginarias lleguen a la UI
+        if transform.get("data", {}).get("imaginary", False):
+            return {
+                "valid": True,
+                "error": None,
+                "stage": "imaginary_conic",
+                "coefs": coefs,
+                "classifier": classifier,
+                "transform": transform,
+                "to_general": {},
+            }
+
         return build_error(
             error=f"Error en transformación: {transform['error']}"
         ) | {"stage": "canonical_transform"}

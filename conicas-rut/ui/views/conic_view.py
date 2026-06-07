@@ -18,7 +18,7 @@ class ConicView(Frame):
         super().__init__(master, *args, **kwargs)
         self.theme = theme
         self.pipeline = pipeline or {}
-        self._active_tab = "general_canonical"  # tab activo del switcher
+        self._active_tab = "general_canonical"
         self._conic_type = None
         self._build()
         if pipeline and pipeline.get("valid"):
@@ -47,7 +47,6 @@ class ConicView(Frame):
 
         SectionHeader(self.left, "Coeficientes generados", t).pack(fill="x")
 
-        # Tabla A B C D E
         coef_card = CardFrame(self.left, t, padx=12, pady=10)
         coef_card.pack(fill="x", pady=(10, 0))
         self._coef_labels = {}
@@ -62,7 +61,6 @@ class ConicView(Frame):
             lbl.pack(fill="x")
             self._coef_labels[name] = lbl
 
-        # Ecuación general
         eq_card = CardFrame(self.left, t, padx=12, pady=10)
         eq_card.pack(fill="x", pady=(10, 0))
         Label(eq_card, text="Ecuación general", bg=t.card, fg=t.gray,
@@ -72,7 +70,6 @@ class ConicView(Frame):
                                wraplength=200, justify="left")
         self._eq_label.pack(anchor="w", pady=(4, 0))
 
-        # Tipo de cónica
         cls_card = CardFrame(self.left, t, padx=12, pady=10)
         cls_card.pack(fill="x", pady=(10, 0))
         Label(cls_card, text="Tipo de cónica", bg=t.card, fg=t.gray,
@@ -81,7 +78,6 @@ class ConicView(Frame):
                                   fg=t.accent, font=t.fonts["head"])
         self._type_label.pack(anchor="w", pady=(4, 0))
 
-        # Pasos coeficientes
         SectionHeader(self.left, "Pasos — Coeficientes", t).pack(
             fill="x", pady=(16, 0))
         self.coef_steps = StepContainer(self.left, t)
@@ -107,7 +103,6 @@ class ConicView(Frame):
 
         SectionHeader(self.right, "Forma canónica", t).pack(fill="x")
 
-        # Ecuación canónica
         can_card = CardFrame(self.right, t, padx=12, pady=10)
         can_card.pack(fill="x", pady=(10, 0))
         Label(can_card, text="Ecuación canónica", bg=t.card, fg=t.gray,
@@ -117,7 +112,6 @@ class ConicView(Frame):
                                        wraplength=270, justify="left")
         self._canonical_label.pack(anchor="w", pady=(4, 0))
 
-        # Elementos vacíos (Entry para defensa oral)
         self._elements_card = CardFrame(self.right, t, padx=12, pady=10)
         self._elements_card.pack(fill="x", pady=(10, 0))
         Label(self._elements_card, text="Elementos", bg=t.card, fg=t.gray,
@@ -140,10 +134,8 @@ class ConicView(Frame):
             command=self._reveal_elements,
         ).pack(fill="x", pady=(6, 0))
 
-        # Tab switcher General↔Canónica
         self._build_tab_switcher(self.right)
 
-        # Contenedor de pasos (ambas vistas comparten el mismo slot)
         self._steps_frame = Frame(self.right, bg=t.panel)
         self._steps_frame.pack(fill="both", expand=True, pady=(6, 0))
         self._steps_frame.rowconfigure(0, weight=1)
@@ -155,21 +147,15 @@ class ConicView(Frame):
         self.general_steps = StepContainer(self._steps_frame, t)
         self.general_steps.grid(row=0, column=0, sticky="nsew")
 
-        # Mostrar tab inicial
         self._show_tab("general_canonical")
 
     def _build_tab_switcher(self, parent):
         t = self.theme
-
         switcher = Frame(parent, bg=t.panel)
         switcher.pack(fill="x", pady=(12, 0))
-
-        # Línea separadora arriba
         Frame(switcher, bg=t.border, height=1).pack(fill="x")
-
         tabs_row = Frame(switcher, bg=t.panel)
         tabs_row.pack(fill="x")
-
         self._tab_btns = {}
         for key, label in [
             ("general_canonical", "General → Canónica"),
@@ -188,8 +174,6 @@ class ConicView(Frame):
             )
             btn.pack(side="left", fill="x", expand=True)
             self._tab_btns[key] = btn
-
-        # Línea separadora abajo
         Frame(switcher, bg=t.border, height=1).pack(fill="x")
 
     def _show_tab(self, tab: str):
@@ -197,12 +181,9 @@ class ConicView(Frame):
         self._active_tab = tab
         for key, btn in self._tab_btns.items():
             if key == tab:
-                btn.config(bg=t.card, fg=t.accent,
-                           font=t.fonts["small"])
+                btn.config(bg=t.card, fg=t.accent, font=t.fonts["small"])
             else:
-                btn.config(bg=t.panel, fg=t.gray,
-                           font=t.fonts["small"])
-
+                btn.config(bg=t.panel, fg=t.gray, font=t.fonts["small"])
         if tab == "general_canonical":
             self.canon_steps.lift()
         else:
@@ -213,7 +194,6 @@ class ConicView(Frame):
     def _load_pipeline(self, pipeline: dict):
         coefs      = pipeline["coefs"]["data"]
         classifier = pipeline["classifier"]
-        transform  = pipeline["transform"]["data"]
         self._conic_type = classifier["conic_type"]
 
         def _fmt(val):
@@ -230,14 +210,116 @@ class ConicView(Frame):
         self._eq_label.config(text=coefs.get("equation_str", "—"))
         self._type_label.config(
             text=classifier["data"].get("conic_name_es", "—"))
-        self._canonical_label.config(
-            text=transform.get("canonical_form", "—"))
 
-        self._populate_elements(self._conic_type)
         self.coef_steps.set_steps(pipeline["coefs"]["steps"])
-        self.canon_steps.set_steps(pipeline["transform"]["steps"])
-        self.general_steps.set_steps(
-            pipeline["to_general"]["steps"]
+        transform = pipeline.get("transform", {})
+        transform_ok = transform.get("valid", False)
+        transform_data = transform.get("data", {})
+        if transform_ok:
+            # Cónica real: mostrar todo normalmente
+            self._canonical_label.config(
+                text=transform_data.get("canonical_form", "—"))
+            self._populate_elements(self._conic_type)
+            self.canon_steps.set_steps(transform.get("steps", []))
+            self.general_steps.set_steps(
+                (pipeline.get("to_general") or {}).get("steps", [])
+                )
+            self.after(50, self._render_graph)
+
+        else:
+            is_imaginary = transform_data.get("imaginary", False)
+
+            canonical_text = transform_data.get("canonical_form", "—")
+            self._canonical_label.config(text=canonical_text)
+
+            if is_imaginary:
+                self.after(50, lambda ct=self._conic_type, td=transform_data:
+                           self._show_imaginary_notice(ct, td))
+            else:
+                error_msg = transform.get("error", "No se pudo transformar la cónica.")
+                self.after(50, lambda msg=error_msg:
+                           self._show_generic_error(msg))
+
+            # Mostrar los pasos del transform (incluye el paso de detección)
+            self.canon_steps.set_steps(transform.get("steps", []))
+            self.general_steps.set_steps(
+                (pipeline.get("to_general") or {}).get("steps", [])
+                )
+
+    # ── Mensaje de cónica imaginaria ──────────────────────────────────────
+
+    def _show_imaginary_notice(self, conic_type: str, transform_data: dict):
+        t = self.theme
+        canvas = self.graph_panel.canvas
+        canvas.delete("all")
+        self.graph_panel.clear_placeholder()
+        canvas.update_idletasks()
+
+        w = canvas.winfo_width()
+        h_mid = canvas.winfo_height() // 2
+
+        nombres = {
+            "circle":  "Circunferencia imaginaria",
+            "ellipse": "Elipse imaginaria",
+        }
+        nombre = nombres.get(conic_type, "Cónica imaginaria")
+
+        canvas.create_text(
+            w // 2, h_mid - 30,
+            text=nombre,
+            fill=t.accent,
+            font=t.fonts["head"],
+            justify="center",
+        )
+        canvas.create_text(
+            w // 2, h_mid + 10,
+            text="Esta ecuación no tiene puntos reales.",
+            fill=t.fg,
+            font=t.fonts["small"],
+            justify="center",
+        )
+
+        # Mostrar el valor de K o r² para contexto matemático
+        val_key = "radius_squared" if conic_type == "circle" else "a2"
+        val = transform_data.get(val_key)
+        if val is not None:
+            label = "r²" if conic_type == "circle" else "a²"
+            canvas.create_text(
+                w // 2, h_mid + 40,
+                text=f"{label} = {val} < 0  →  sin solución real",
+                fill=t.gray,
+                font=t.fonts["mono_sm"],
+                justify="center",
+            )
+
+        # También actualizar el panel de elementos con un aviso
+        frame = self._elements_frame
+        for child in frame.winfo_children():
+            child.destroy()
+        Label(
+            frame,
+            text="Sin elementos reales\n(cónica imaginaria)",
+            bg=t.card,
+            fg=t.gray,
+            font=t.fonts["small"],
+            justify="left",
+        ).pack(anchor="w")
+
+    def _show_generic_error(self, message: str):
+        """Muestra un error genérico en el GraphPanel."""
+        t = self.theme
+        canvas = self.graph_panel.canvas
+        canvas.delete("all")
+        self.graph_panel.clear_placeholder()
+        canvas.update_idletasks()
+        w = canvas.winfo_width() or 500
+        h_mid = (canvas.winfo_height() or 400) // 2
+        canvas.create_text(
+            w // 2, h_mid,
+            text=f"No se pudo graficar:\n{message}",
+            fill=t.gray,
+            font=t.fonts["small"],
+            justify="center",
         )
 
     # ── Elementos vacíos (Entry) ──────────────────────────────────────────
@@ -250,7 +332,6 @@ class ConicView(Frame):
 
         self._element_entries = {}
 
-        # Campos por tipo de cónica
         fields = {
             "circle":    [("Centro", "centro"), ("Radio", "radio")],
             "ellipse":   [("Centro", "centro"),  ("c",        "c"),
@@ -263,19 +344,15 @@ class ConicView(Frame):
                           ("Directriz", "directriz"), ("Orientación", "orientacion")],
         }.get(conic_type, [])
 
-        # Grid de 2 columnas
         for i, (label_text, key) in enumerate(fields):
             col = i % 2
             row = i // 2
-
             cell = Frame(frame, bg=t.card)
             cell.grid(row=row, column=col, sticky="ew",
                       padx=(0, 8) if col == 0 else 0, pady=3)
             frame.columnconfigure(col, weight=1)
-
             Label(cell, text=label_text, bg=t.card, fg=t.gray,
                   font=t.fonts["small"], anchor="w").pack(anchor="w")
-
             entry = Entry(
                 cell,
                 bg=t.panel,
@@ -326,12 +403,15 @@ class ConicView(Frame):
             })
         return steps
 
-
     def _reveal_elements(self):
         """Rellena los Entry de elementos con los valores calculados."""
         if not self.pipeline.get("valid"):
             return
-        td = self.pipeline["transform"]["data"]
+        transform = self.pipeline.get("transform", {})
+        # ✓ FIX: no intentar revelar elementos si el transform falló
+        if not transform.get("valid", False):
+            return
+        td = transform["data"]
         ct = self._conic_type
 
         def fmt(n):
@@ -379,18 +459,23 @@ class ConicView(Frame):
                 entry.delete(0, "end")
                 entry.insert(0, values[key])
 
-
     def load_data(self, rut_result: dict):
         if self.pipeline and self.pipeline.get("valid"):
-            self.after(50, self._render_graph)
+            transform_ok = self.pipeline.get("transform", {}).get("valid", False)
+            if transform_ok:
+                self.after(50, self._render_graph)
+            else:
+                self._load_pipeline(self.pipeline)
+
             return
 
-        # Fallback: construir pipeline desde rut_result
         from core.conic_pipeline import run_pipeline
         self.pipeline = run_pipeline(rut_result)
         if self.pipeline.get("valid"):
             self._load_pipeline(self.pipeline)
-            self.after(50, self._render_graph)
+            transform_ok = self.pipeline.get("transform", {}).get("valid", False)
+            if transform_ok:
+                self.after(50, self._render_graph)
 
     # ── Renderizado del gráfico ───────────────────────────────────────────
 
@@ -399,17 +484,21 @@ class ConicView(Frame):
         if not self.pipeline or not self.pipeline.get("valid"):
             return
 
+        # ✓ FIX: no intentar graficar si el transform falló
+        transform = self.pipeline.get("transform", {})
+        if not transform.get("valid", False):
+            return
+
         canvas = self.graph_panel.canvas
         canvas.delete("all")
         self.graph_panel.clear_placeholder()
-
-        # Forzar que el canvas tenga dimensiones reales
         canvas.update_idletasks()
+
         if canvas.winfo_width() < 10:
             self.after(100, self._render_graph)
             return
 
-        td = self.pipeline["transform"]["data"]
+        td = transform["data"]
         ct = self._conic_type
 
         plotter = ConicPlotter(canvas, self.theme)
@@ -421,28 +510,23 @@ class ConicView(Frame):
                     h=td["center"][0],
                     k=td["center"][1],
                 )
-
             elif ct == "ellipse":
-                # a² >= b² siempre; orientación determina qué eje es mayor
                 if td["a2"] >= td["b2"]:
                     plotter.plot_ellipse(
                         a=td["a"], b=td["b"],
                         h=td["center"][0], k=td["center"][1],
                     )
                 else:
-                    # eje mayor vertical → intercambiar a y b
                     plotter.plot_ellipse(
                         a=td["b"], b=td["a"],
                         h=td["center"][0], k=td["center"][1],
                     )
-
             elif ct == "hyperbola":
                 plotter.plot_hyperbola(
                     a=td["a"], b=td["b"],
                     h=td["center"][0], k=td["center"][1],
                     orientation=td.get("orientation", "horizontal"),
                 )
-
             elif ct == "parabola":
                 plotter.plot_parabola(
                     p=td["p"],
@@ -450,7 +534,6 @@ class ConicView(Frame):
                     k=td["vertex"][1],
                     orientation=td.get("orientation", "vertical"),
                 )
-
         except Exception as e:
             canvas.create_text(
                 canvas.winfo_width() // 2,
