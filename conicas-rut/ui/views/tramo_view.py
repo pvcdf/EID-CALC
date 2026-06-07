@@ -22,6 +22,7 @@ class TramoView(Frame):
         self.theme = theme
         self._datos    = None
         self._analisis = None
+        self._plotter  = None
         self._build()
 
     def _build(self):
@@ -154,11 +155,11 @@ class TramoView(Frame):
         self._add_field("Tipo de discontinuidad", "tipo_disc")
         self._add_field("Justificación escrita", "justif", tall=True)
 
-        # Botón revelar
+        # Botón mostrar respuesta
         tk.Button(
             self.right,
-            text="Verificar respuestas",
-            bg=t.panel, fg=t.gray,
+            text="Mostrar respuesta",
+            bg=t.panel, fg=t.accent,
             font=t.fonts["small"],
             bd=0, cursor="hand2",
             padx=10, pady=6,
@@ -167,7 +168,7 @@ class TramoView(Frame):
             highlightthickness=1,
             activebackground=t.card,
             activeforeground=t.fg,
-            command=self._reveal_answers,
+            command=self._mostrar_respuesta_tramo,
         ).pack(fill="x", pady=(10, 0))
 
     def _add_field(self, label_text, key, tall=False):
@@ -201,7 +202,7 @@ class TramoView(Frame):
         self._populate_left()
         self._populate_steps()
         self._populate_table(tabla)
-        self.after(50, self._render_graph)
+        # No renderizar el gráfico aquí - esperar a que el usuario presione botones
 
     # ── Poblar columna izquierda ──────────────────────────────────────────
 
@@ -361,6 +362,13 @@ class TramoView(Frame):
         _set("concl_cont",    an["conclusion_continuidad"])
         _set("tipo_disc",     an["clasificacion_discontinuidad"])
         _set("justif",        an["justificacion"])
+
+    def _mostrar_respuesta_tramo(self):
+        """Muestra la respuesta correcta y renderiza el gráfico."""
+        # Renderizar el gráfico
+        self.after(50, self._render_graph)
+        # Rellenar los campos con las respuestas correctas
+        self._reveal_answers()
 
     # ── Tema ──────────────────────────────────────────────────────────────
 

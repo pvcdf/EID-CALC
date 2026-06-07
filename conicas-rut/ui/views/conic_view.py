@@ -25,11 +25,6 @@ class ConicView(Frame):
         self._active_transform = None
         self._correct_elements = {}
         
-        # Variables para los elementos editables
-        self.centro_var = StringVar()
-        self.foco_var = StringVar()
-        self.vertice_var = StringVar()
-        
         self._build()
         if pipeline and pipeline.get("valid"):
             self._load_pipeline(pipeline)
@@ -52,30 +47,13 @@ class ConicView(Frame):
 
     def _build_left(self):
         t = self.theme
-        self.left = PanelFrame(self, t, padx=0, pady=0)
+        self.left = PanelFrame(self, t, padx=12, pady=12)
         self.left.grid(row=0, column=0, sticky="nsew")
         
-        # Canvas con scrollbar para la columna izquierda
-        canvas = Canvas(self.left, bg=t.panel, highlightthickness=0, bd=0)
-        scrollbar = Scrollbar(self.left, bg=t.border, activebackground=t.accent)
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
-        
-        scrollbar.config(command=canvas.yview)
-        canvas.config(yscrollcommand=scrollbar.set)
-        
-        # Frame interno para el contenido
-        inner_frame = Frame(canvas, bg=t.panel)
-        canvas_window = canvas.create_window(0, 0, window=inner_frame, anchor="nw")
-        
-        # Agregar padding al frame interno
-        content = Frame(inner_frame, bg=t.panel)
-        content.pack(fill="both", expand=True, padx=12, pady=12)
-        
-        SectionHeader(content, "Coeficientes generados", t).pack(fill="x")
+        SectionHeader(self.left, "Coeficientes generados", t).pack(fill="x")
 
         # Tabla A B C D E
-        coef_card = CardFrame(content, t, padx=12, pady=10)
+        coef_card = CardFrame(self.left, t, padx=12, pady=10)
         coef_card.pack(fill="x", pady=(10, 0))
         self._coef_labels = {}
         for i, name in enumerate(["A", "B", "C", "D", "E"]):
@@ -90,7 +68,7 @@ class ConicView(Frame):
             self._coef_labels[name] = lbl
 
         # Ecuación general
-        eq_card = CardFrame(content, t, padx=12, pady=10)
+        eq_card = CardFrame(self.left, t, padx=12, pady=10)
         eq_card.pack(fill="x", pady=(10, 0))
         Label(eq_card, text="Ecuación general", bg=t.card, fg=t.gray,
               font=t.fonts["small"]).pack(anchor="w")
@@ -100,7 +78,7 @@ class ConicView(Frame):
         self._eq_label.pack(anchor="w", pady=(4, 0))
 
         # Tipo de cónica
-        cls_card = CardFrame(content, t, padx=12, pady=10)
+        cls_card = CardFrame(self.left, t, padx=12, pady=10)
         cls_card.pack(fill="x", pady=(10, 0))
         Label(cls_card, text="Tipo de cónica", bg=t.card, fg=t.gray,
               font=t.fonts["small"]).pack(anchor="w")
@@ -108,91 +86,11 @@ class ConicView(Frame):
                                   fg=t.accent, font=t.fonts["head"])
         self._type_label.pack(anchor="w", pady=(4, 0))
 
-        # Panel de elementos editable
-        elem_card = CardFrame(content, t, padx=12, pady=10)
-        elem_card.pack(fill="x", pady=(10, 0))
-        Label(elem_card, text="Elementos editables", bg=t.card, fg=t.gray,
-              font=t.fonts["small"]).pack(anchor="w", pady=(0, 8))
-        
-        # Frame para los 3 campos (Centro, Foco, Vértice)
-        elem_frame = Frame(elem_card, bg=t.card)
-        elem_frame.pack(fill="x")
-        
-        for idx, (label_text, var) in enumerate([
-            ("Centro (x,y)", self.centro_var),
-            ("Foco (x,y)", self.foco_var),
-            ("Vértice (x,y)", self.vertice_var),
-        ]):
-            field_row = Frame(elem_frame, bg=t.card)
-            field_row.pack(fill="x", pady=3)
-            Label(field_row, text=label_text, bg=t.card, fg=t.gray,
-                  font=t.fonts["small"], anchor="w").pack(anchor="w")
-            
-            entry = Entry(
-                field_row,
-                textvariable=var,
-                bg=t.panel,
-                fg=t.fg,
-                insertbackground=t.fg,
-                font=t.fonts["mono_sm"],
-                bd=0,
-                relief="flat",
-                highlightbackground=t.border,
-                highlightthickness=1,
-            )
-            entry.pack(fill="x", ipady=4)
-
-        # Frame para botones
-        btn_frame = Frame(elem_card, bg=t.card)
-        btn_frame.pack(fill="x", pady=(8, 0))
-        
-        # Botón "Actualizar gráfico"
-        tk.Button(
-            btn_frame,
-            text="Actualizar gráfico",
-            bg=t.card, fg=t.accent2,
-            font=t.fonts["small"],
-            bd=0, cursor="hand2",
-            relief="flat",
-            activebackground=t.panel,
-            activeforeground=t.accent,
-            command=self._actualizar_grafico,
-        ).pack(side="left", fill="both", expand=True, padx=(0, 4))
-        
-        # Botón "Mostrar respuesta" con referencia para actualizar estado
-        self._mostrar_respuesta_btn = tk.Button(
-            btn_frame,
-            text="Mostrar respuesta",
-            bg=t.card, fg=t.accent,
-            font=t.fonts["small"],
-            bd=0, cursor="hand2",
-            relief="flat",
-            activebackground=t.panel,
-            activeforeground=t.accent2,
-            command=self._mostrar_respuesta,
-            state="disabled",
-        )
-        self._mostrar_respuesta_btn.pack(side="left", fill="both", expand=True)
-        
-        # Registrar callback para actualizar estado del botón cuando cambian los datos
-        self.centro_var.trace_add("write", lambda *args: self._update_mostrar_respuesta_btn())
-        self.foco_var.trace_add("write", lambda *args: self._update_mostrar_respuesta_btn())
-        self.vertice_var.trace_add("write", lambda *args: self._update_mostrar_respuesta_btn())
-
         # Pasos coeficientes
-        SectionHeader(content, "Pasos — Coeficientes", t).pack(
+        SectionHeader(self.left, "Pasos — Coeficientes", t).pack(
             fill="x", pady=(16, 0))
-        self.coef_steps = StepContainer(content, t)
+        self.coef_steps = StepContainer(self.left, t)
         self.coef_steps.pack(fill="both", expand=True, pady=(6, 0))
-        
-        # Actualizar el scroll region cuando el contenido cambia tamaño
-        def update_scroll_region(event=None):
-            canvas.configure(scrollregion=canvas.bbox("all"))
-            # Hacer que el window ocupe el ancho del canvas
-            canvas.itemconfig(canvas_window, width=canvas.winfo_width())
-        
-        inner_frame.bind("<Configure>", update_scroll_region)
-        canvas.bind("<Configure>", lambda e: canvas.itemconfig(canvas_window, width=e.width))
 
     # ── Columna centro ────────────────────────────────────────────────────
 
@@ -231,6 +129,36 @@ class ConicView(Frame):
               font=t.fonts["small"]).pack(anchor="w", pady=(0, 6))
         self._elements_frame = Frame(self._elements_card, bg=t.card)
         self._elements_frame.pack(fill="x")
+
+        # Botones para actualizar gráfico y mostrar respuesta
+        btn_frame = Frame(self._elements_card, bg=t.card)
+        btn_frame.pack(fill="x", pady=(8, 0))
+        
+        tk.Button(
+            btn_frame,
+            text="Actualizar gráfico",
+            bg=t.card, fg=t.accent2,
+            font=t.fonts["small"],
+            bd=0, cursor="hand2",
+            relief="flat",
+            activebackground=t.panel,
+            activeforeground=t.accent,
+            command=self._actualizar_grafico,
+        ).pack(side="left", fill="both", expand=True, padx=(0, 4))
+        
+        self._mostrar_respuesta_btn = tk.Button(
+            btn_frame,
+            text="Mostrar respuesta",
+            bg=t.card, fg=t.accent,
+            font=t.fonts["small"],
+            bd=0, cursor="hand2",
+            relief="flat",
+            activebackground=t.panel,
+            activeforeground=t.accent2,
+            command=self._mostrar_respuesta,
+            state="disabled",
+        )
+        self._mostrar_respuesta_btn.pack(side="left", fill="both", expand=True)
 
         tk.Button(
             self.right,
@@ -492,7 +420,7 @@ class ConicView(Frame):
 
     def load_data(self, rut_result: dict):
         if self.pipeline and self.pipeline.get("valid"):
-            self.after(50, self._render_graph)
+            # No renderizar la cónica aquí - esperar a que el usuario presione botones
             return
 
         # Fallback: construir pipeline desde rut_result
@@ -500,7 +428,7 @@ class ConicView(Frame):
         self.pipeline = run_pipeline(rut_result)
         if self.pipeline.get("valid"):
             self._load_pipeline(self.pipeline)
-            self.after(50, self._render_graph)
+            # No renderizar la cónica aquí - esperar a que el usuario presione botones
 
     # ── Renderizado del gráfico ───────────────────────────────────────────
 
@@ -623,57 +551,160 @@ class ConicView(Frame):
 
     def _actualizar_grafico(self):
         """Actualiza el gráfico con los valores ingresados en los campos de entrada."""
-        if not self._plotter or not self._active_transform:
+        if not self._active_transform:
             return
         
-        # Construir dict con elementos válidos del usuario
+        # Construir dict con elementos válidos del usuario desde los campos de la derecha
         elementos = {}
         
-        # Centro
-        coord_centro = self._parse_coordinate(self.centro_var.get())
-        if coord_centro:
-            elementos["Centro"] = coord_centro
+        # Leer valores de los campos (Centro, Vértice como coordenadas)
+        for key, entry in self._element_entries.items():
+            value = entry.get().strip()
+            if not value:
+                continue
+            
+            # Si es una coordenada (centro o vértice)
+            if key in ["centro", "vertice"]:
+                coord = self._parse_coordinate(value)
+                if coord:
+                    display_key = "Centro" if key == "centro" else "Vértice"
+                    elementos[display_key] = coord
         
-        # Foco
-        coord_foco = self._parse_coordinate(self.foco_var.get())
-        if coord_foco:
-            elementos["Foco"] = coord_foco
+        # Solo dibujar si hay elementos válidos
+        if not elementos:
+            return
         
-        # Vértice
-        coord_vertice = self._parse_coordinate(self.vertice_var.get())
-        if coord_vertice:
-            elementos["Vértice"] = coord_vertice
+        # Crear plotter si no existe
+        if not self._plotter:
+            canvas = self.graph_panel.canvas
+            canvas.delete("all")
+            self.graph_panel.clear_placeholder()
+            self._plotter = ConicPlotter(canvas, self.theme)
         
-        # Limpiar y redibujar con los elementos ingresados
+        # Limpiar puntos anteriores y redibujar con los nuevos elementos
         self._plotter.clear_user_elements()
-        if elementos:
-            self._plotter.draw_user_elements(elementos, self._active_transform)
+        self._plotter.draw_user_elements(elementos, self._active_transform)
 
     def _mostrar_respuesta(self):
-        """Rellena los campos con los elementos correctos del core y los dibuja."""
-        if not self._correct_elements or not self._plotter or not self._active_transform:
+        """Rellena los campos con los elementos correctos y dibuja la cónica correcta."""
+        if not self.pipeline or not self.pipeline.get("valid"):
             return
         
-        # Construir diccionario con elementos formateados
-        elementos = {}
+        if not self._active_transform:
+            return
         
-        # Mapear claves del core a variables y al diccionario para dibujo
+        # Crear plotter si no existe
+        canvas = self.graph_panel.canvas
+        if not self._plotter:
+            canvas.delete("all")
+            self.graph_panel.clear_placeholder()
+            self._plotter = ConicPlotter(canvas, self.theme)
+        
+        # Renderizar la cónica correcta
+        self._render_conic()
+        
+        # Rellenar campos con valores correctos
+        td = self.pipeline["transform"]["data"]
+        ct = self._conic_type
+        
+        def fmt(n):
+            return str(round(n, 2))
+        
+        def fmt_coord(pair):
+            return f"{round(pair[0], 2)},{round(pair[1], 2)}"
+        
+        # Mapear valores correctos a los campos de la derecha
+        for key, entry in self._element_entries.items():
+            entry.delete(0, "end")
+            
+            if ct == "circle":
+                if key == "centro":
+                    entry.insert(0, fmt_coord(td["center"]))
+                elif key == "radio":
+                    entry.insert(0, fmt(td["radius"]))
+            
+            elif ct == "ellipse":
+                if key == "centro":
+                    entry.insert(0, fmt_coord(td["center"]))
+                elif key == "a":
+                    entry.insert(0, fmt(td["a"]))
+                elif key == "b":
+                    entry.insert(0, fmt(td["b"]))
+                elif key == "orientacion":
+                    entry.insert(0, "horizontal" if td["a2"] > td["b2"] else "vertical")
+            
+            elif ct == "hyperbola":
+                if key == "centro":
+                    entry.insert(0, fmt_coord(td["center"]))
+                elif key == "a":
+                    entry.insert(0, fmt(td["a"]))
+                elif key == "b":
+                    entry.insert(0, fmt(td["b"]))
+                elif key == "orientacion":
+                    entry.insert(0, td.get("orientation", "—"))
+            
+            elif ct == "parabola":
+                if key == "vertice":
+                    entry.insert(0, fmt_coord(td["vertex"]))
+                elif key == "p":
+                    entry.insert(0, fmt(td["p"]))
+                elif key == "orientacion":
+                    entry.insert(0, td.get("orientation", "—"))
+        
+        # Dibujar puntos correctos también
+        elementos_correctos = {}
         if "Center" in self._correct_elements:
-            coord = self._correct_elements["Center"]
-            formatted = f"{coord[0]:.2f},{coord[1]:.2f}"
-            self.centro_var.set(formatted)
-            elementos["Centro"] = coord
-        
+            elementos_correctos["Centro"] = self._correct_elements["Center"]
         if "Vertex" in self._correct_elements:
-            coord = self._correct_elements["Vertex"]
-            formatted = f"{coord[0]:.2f},{coord[1]:.2f}"
-            self.vertice_var.set(formatted)
-            elementos["Vértice"] = coord
+            elementos_correctos["Vértice"] = self._correct_elements["Vertex"]
         
-        # Limpiar y redibujar con elementos correctos
-        self._plotter.clear_user_elements()
-        if elementos:
-            self._plotter.draw_user_elements(elementos, self._active_transform)
+        if elementos_correctos:
+            self._plotter.draw_user_elements(elementos_correctos, self._active_transform)
+
+    def _render_conic(self):
+        """Renderiza la cónica correcta del core."""
+        if not self.pipeline or not self.pipeline.get("valid") or not self._plotter:
+            return
+        
+        td = self.pipeline["transform"]["data"]
+        ct = self._conic_type
+        
+        try:
+            if ct == "circle":
+                self._plotter.plot_circle(
+                    radius=td["radius"],
+                    h=td["center"][0],
+                    k=td["center"][1],
+                )
+            
+            elif ct == "ellipse":
+                if td["a2"] >= td["b2"]:
+                    self._plotter.plot_ellipse(
+                        a=td["a"], b=td["b"],
+                        h=td["center"][0], k=td["center"][1],
+                    )
+                else:
+                    self._plotter.plot_ellipse(
+                        a=td["b"], b=td["a"],
+                        h=td["center"][0], k=td["center"][1],
+                    )
+            
+            elif ct == "hyperbola":
+                self._plotter.plot_hyperbola(
+                    a=td["a"], b=td["b"],
+                    h=td["center"][0], k=td["center"][1],
+                    orientation=td.get("orientation", "horizontal"),
+                )
+            
+            elif ct == "parabola":
+                self._plotter.plot_parabola(
+                    p=td["p"],
+                    h=td["vertex"][0],
+                    k=td["vertex"][1],
+                    orientation=td.get("orientation", "vertical"),
+                )
+        except Exception as e:
+            print(f"Error al renderizar cónica: {e}")
 
     def _update_mostrar_respuesta_btn(self):
         """Actualiza el estado del botón 'Mostrar respuesta' según los datos disponibles."""
@@ -691,11 +722,6 @@ class ConicView(Frame):
 
     def _load_data_internals(self, transform):
         """Carga referencias internas del transform y crea CoordinateTransform."""
-        # Limpiar campos de entrada
-        self.centro_var.set("")
-        self.foco_var.set("")
-        self.vertice_var.set("")
-        
         # Guardar elementos correctos del core
         self._correct_elements = {}
         if "center" in transform and transform["center"]:
