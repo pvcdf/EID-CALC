@@ -1,5 +1,3 @@
-# conicas-rut/graphics/conic_plotter.py
-
 """
 Funciones para la graficación de cónicas (elipses, hipérbolas, parábolas).
 
@@ -10,13 +8,61 @@ mostrando focos, vértices y otros elementos especiales.
 from graphics.canvas_utils import CoordinateTransform, GridDrawer, ShapeDrawer
 
 class ConicPlotter:
+    """Grafica cónicas en forma canónica."""
+
     def __init__(self, canvas, theme):
+        """
+        Inicializa el plotter de cónicas.
+
+        Args:
+            canvas: Canvas de tkinter donde se dibujará
+            theme: Objeto de tema con colores y fuentes
+        """
         self.canvas = canvas
         self.theme = theme
 
     def clear_plot(self):
         """Limpia todos los elementos dibujados excepto grid."""
         self.canvas.delete("conic", "foci", "vertices", "labels")
+
+    def plot_circle(self, radius, h, k):
+        """
+        Grafica un círculo en forma canónica (x-h)² + (y-k)² = r².
+
+        Args:
+            radius: Radio del círculo
+            h: Traslación horizontal del centro
+            k: Traslación vertical del centro
+        """
+        # Configurar transformada de coordenadas
+        margin = 1
+        transform = CoordinateTransform(
+            self.canvas.winfo_width(), self.canvas.winfo_height(),
+            h - radius - margin, h + radius + margin,
+            k - radius - margin, k + radius + margin
+        )
+
+        # Dibujar grilla y ejes
+        GridDrawer.draw_grid(self.canvas, transform, grid_spacing=1, grid_color=self.theme.border, axis_color=self.theme.gray)
+        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=1)
+
+        # Graficar círculo usando aproximación con puntos
+        num_points = 200
+        points = []
+        for i in range(num_points + 1):
+            angle = (i / num_points) * 2 * 3.14159
+            x_math = h + radius * __import__("math").cos(angle)
+            y_math = k + radius * __import__("math").sin(angle)
+            x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+            if points:
+                self.canvas.create_line(
+                    points[-1][0], points[-1][1], x_canvas, y_canvas,
+                    fill=self.theme.accent, width=2, tags="conic"
+                )
+            points.append((x_canvas, y_canvas))
+
+        # Centro
+        ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2, size=3, label="C", theme=self.theme)
 
     def plot_ellipse(self, a, b, h, k, rotation=0):
         """
@@ -79,6 +125,9 @@ class ConicPlotter:
 
     def plot_hyperbola(self, a, b, h, k, orientation="horizontal"):
         """
+        Grafica una hipérbola en forma canónica.
+        (x-h)²/a² - (y-k)²/b² = 1 (horizontal) o (y-k)²/a² - (x-h)²/b² = 1 (vertical).
+
         Args:
             a: Semi-eje transversal
             b: Semi-eje conjugado
@@ -147,6 +196,9 @@ class ConicPlotter:
 
     def plot_parabola(self, p, h, k, orientation="vertical"):
         """
+        Grafica una parábola en forma canónica.
+        (x-h)² = 4p(y-k) (vertical) o (y-k)² = 4p(x-h) (horizontal).
+
         Args:
             p: Distancia focal
             h: Traslación horizontal del vértice
@@ -188,66 +240,52 @@ class ConicPlotter:
             # Foco y directriz
             ShapeDrawer.draw_point(self.canvas, transform, h, k + p, self.theme.yellow, size=5, label="F", theme=self.theme)
             ShapeDrawer.draw_asymptote(self.canvas, transform, y_math=k - p, color=self.theme.yellow)
-        
-        else:  # horizontal
-            for i in range(num_points + 1):
-                y_math = k - 4 * abs(p) + (i / num_points) * 8 * abs(p)
-                x_math = h + (y_math - k) ** 2 / (4 * p)
-                x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-                if i > 0:
-                    prev_y = k - 4 * abs(p) + ((i - 1) / num_points) * 8 * abs(p)
-                    prev_x = h + (prev_y - k) ** 2 / (4 * p)
-                    prev_x_c, prev_y_c = transform.math_to_canvas(prev_x, prev_y)
-                    self.canvas.create_line(prev_x_c, prev_y_c, x_canvas, y_canvas, fill=self.theme.accent, width=2, tags="conic")
-
-            # Foco y directriz
-            ShapeDrawer.draw_point(self.canvas, transform, h + p, k, self.theme.yellow, size=5, label="F", theme=self.theme)
-            ShapeDrawer.draw_asymptote(self.canvas, transform, x_math=h - p, color=self.theme.yellow)
 
         # Vértice
         ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.green, size=4, label="V", theme=self.theme)
 
-    def plot_circle(self, radius, h, k):
+    def clear_user_elements(self):
+        """Limpia todos los elementos dibujados por entrada del usuario."""
+        self.canvas.delete("user_input")
+
+    def draw_user_elements(self, elements, transform):
         """
+        Dibuja elementos geométricos ingresados por el usuario.
+
         Args:
-            radius: Radio de la circunferencia
-            h: Traslación horizontal del centro
-            k: Traslación vertical del centro
+            elements: Dict con keys "Centro", "Foco", "Vértice" y valores (x, y)
+            transform: CoordinateTransform para convertir coordenadas matemáticas a canvas
         """
-        margin = 1
-        transform = CoordinateTransform(
-            self.canvas.winfo_width(), self.canvas.winfo_height(),
-            h - radius - margin, h + radius + margin,
-            k - radius - margin, k + radius + margin
-        )
+        # Colores para cada tipo de elemento
+        colors = {
+            "Centro": self.theme.red,
+            "Foco": self.theme.yellow,
+            "Vértice": self.theme.green,
+        }
 
-        # Dibujar grilla y ejes
-        GridDrawer.draw_grid(self.canvas, transform, grid_spacing=1, grid_color=self.theme.border, axis_color=self.theme.gray)
-        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=1)
-
-        # Graficar circunferencia usando aproximación con puntos
-        num_points = 200
         import math
-        points = []
-        for i in range(num_points + 1):
-            angle = (i / num_points) * 2 * math.pi
-            x_math = h + radius * math.cos(angle)
-            y_math = k + radius * math.sin(angle)
+
+        for key, (x_math, y_math) in elements.items():
+            if key not in colors:
+                continue
+
+            color = colors[key]
             x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-            if points:
-                self.canvas.create_line(
-                    points[-1][0], points[-1][1], x_canvas, y_canvas,
-                    fill=self.theme.accent, width=2, tags="conic"
-                )
-            points.append((x_canvas, y_canvas))
 
-        # Centro
-        ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2, size=4, label="C", theme=self.theme)
+            # Dibujar círculo (punto)
+            radius = 5
+            self.canvas.create_oval(
+                x_canvas - radius, y_canvas - radius,
+                x_canvas + radius, y_canvas + radius,
+                fill=color, outline=color, width=1, tags="user_input"
+            )
 
-        # Radio (línea desde centro a punto de la circunferencia)
-        x_math = h + radius
-        y_math = k
-        x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-        origin_x, origin_y = transform.math_to_canvas(h, k)
-        self.canvas.create_line(origin_x, origin_y, x_canvas, y_canvas, fill=self.theme.gray, width=1, dash=(2, 2), tags="conic")
-        ShapeDrawer.draw_point(self.canvas, transform, x_math, y_math, self.theme.green, size=3, label="P", theme=self.theme)
+            # Dibujar etiqueta
+            label_offset_x, label_offset_y = 12, -12
+            self.canvas.create_text(
+                x_canvas + label_offset_x, y_canvas + label_offset_y,
+                text=key,
+                fill=color,
+                font=self.theme.fonts.get("small", ("Arial", 8)),
+                anchor="w", tags="user_input"
+            )
