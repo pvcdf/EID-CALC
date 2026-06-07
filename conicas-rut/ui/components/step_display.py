@@ -20,14 +20,15 @@ class StepItem(CardFrame):
         super().__init__(master, theme, *args, **kwargs)
         self.theme = theme
 
-        tk.Label(
+        title_label = tk.Label(
             self,
-            text=title,
+            text=f"▸ {title}",
             bg=self.theme.card,
             fg=self.theme.accent,
             font=self.theme.fonts["label"],
             anchor="w",
-        ).pack(fill="x")
+        )
+        title_label.pack(fill="x", padx=8, pady=(8, 4))
 
         if explanation:
             tk.Label(
@@ -36,9 +37,9 @@ class StepItem(CardFrame):
                 bg=self.theme.card,
                 fg=self.theme.fg,
                 font=self.theme.fonts["small"],
-                wraplength=360,
+                wraplength=340,
                 justify="left",
-            ).pack(fill="x", pady=(8, 0))
+            ).pack(fill="x", padx=12, pady=(0, 4))
 
         if equation:
             tk.Label(
@@ -47,31 +48,31 @@ class StepItem(CardFrame):
                 bg=self.theme.card,
                 fg=self.theme.accent2,
                 font=self.theme.fonts["mono"],
-                wraplength=360,
+                wraplength=340,
                 justify="left",
-            ).pack(fill="x", pady=(8, 0))
+            ).pack(fill="x", padx=12, pady=(4, 4))
 
         if result:
             tk.Label(
                 self,
-                text=f"Resultado: {result}",
+                text=f"✓ Resultado: {result}",
                 bg=self.theme.card,
                 fg=self.theme.green,
                 font=self.theme.fonts["label"],
-                wraplength=360,
+                wraplength=340,
                 justify="left",
-            ).pack(fill="x", pady=(8, 0))
+            ).pack(fill="x", padx=12, pady=(4, 4))
 
         if observation:
             tk.Label(
                 self,
-                text=f"Observación: {observation}",
+                text=f"ℹ {observation}",
                 bg=self.theme.card,
                 fg=self.theme.gray,
                 font=self.theme.fonts["small"],
-                wraplength=360,
+                wraplength=340,
                 justify="left",
-            ).pack(fill="x", pady=(8, 0))
+            ).pack(fill="x", padx=12, pady=(4, 8))
 
     def update_theme(self, theme):
         super().update_theme(theme)
@@ -118,9 +119,9 @@ class StepContainer(tk.Frame):
             equation=equation,
             result=result,
             observation=observation,
-            pady=6,
+            pady=2,
         )
-        item.pack(fill="x", pady=(0, 8), padx=6)
+        item.pack(fill="x", pady=(0, 10), padx=4)
         self.step_items.append(item)
 
     def set_steps(self, steps):

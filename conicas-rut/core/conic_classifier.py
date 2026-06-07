@@ -1,3 +1,5 @@
+# conicas-rut/core/conic_classifier.py
+
 """
 Usa reglas matemáticas reales basadas en:
 - Signos de A y B

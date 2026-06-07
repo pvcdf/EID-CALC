@@ -83,56 +83,21 @@ class App(tk.Tk):
     def _show_input_screen(self):
         if hasattr(self, "_root_frame"):
             self._root_frame.destroy()
-        self._root_frame = tk.Frame(
-            self,
-            bg=self.theme.bg
-        )
+        self._root_frame = tk.Frame(self, bg=self.theme.bg)
         self._root_frame.pack(fill="both", expand=True)
         # Contenedor centrado
-        center = tk.Frame(
-            self._root_frame,
-            bg=self.theme.bg
-        )
-        center.place(
-            relx=0.5,
-            rely=0.5,
-            anchor="center"
-        )
-        tk.Label(
-            center,
-            text="◈",
-            bg=self.theme.bg,
-            fg=self.theme.accent,
-            font=self.F["title"]
+        center = tk.Frame(self._root_frame, bg=self.theme.bg)
+        center.place(relx=0.5, rely=0.5, anchor="center")
+        tk.Label(center, text="◈", bg=self.theme.bg, fg=self.theme.accent, font=self.F["title"]
         ).pack(anchor="center")
-        tk.Label(
-            center,
-            text="CónicasRUT",
-            bg=self.theme.bg,
-            fg=self.theme.fg,
-            font=self.F["title"]
+        tk.Label(center, text="CónicasRUT", bg=self.theme.bg, fg=self.theme.fg, font=self.F["title"]
         ).pack(anchor="center")
-        tk.Label(
-            center,
-            text="MAT1186 — Ingeniería Civil en Informática",
-            bg=self.theme.bg,
-            fg=self.theme.gray,
-            font=self.F["small"]
+        tk.Label(center, text="MAT1186 — Ingeniería Civil en Informática", bg=self.theme.bg, fg=self.theme.gray, font=self.F["small"]
         ).pack(anchor="center", pady=(2, 30))
-        input_card = InputPanel(
-            center,
-            self.theme,
-            title="Ingresa tu RUT para comenzar",
-            button_text="Analizar",
-            command=self._on_analizar,
-            padx=0,
-            pady=0,
-        )
-        input_card.pack(
-            anchor="center",
-            ipadx=0,
-            ipady=0
-        )
+
+        input_card = InputPanel( center, self.theme, title="Ingresa tu RUT para comenzar",
+            button_text="Analizar", command=self._on_analizar, padx=0, pady=0,)
+        input_card.pack( anchor="center", ipadx=0, ipady=0)
 
         self._rut_entry = input_card.entry
         self._input_card = input_card
@@ -191,47 +156,36 @@ class App(tk.Tk):
         
     # ── Interfaz principal ──────────────────────────────────────────────────
     def _launch_main(self):
-
         from ui.views.conic_view import ConicView
         from ui.views.tramo_view import TramoView
+        from core.conic_pipeline import run_pipeline
 
         if hasattr(self, "_root_frame"):
             self._root_frame.destroy()
-        self._root_frame = tk.Frame(
-            self,
-            bg=self.theme.bg
-        )
-        self._root_frame.pack(
-            fill="both",
-            expand=True
-        )
+
+        self._root_frame = tk.Frame(self, bg=self.theme.bg)
+        self._root_frame.pack(fill="both", expand=True)
         self._build_topbar(self._root_frame)
-        container = tk.Frame(
-            self._root_frame,
-            bg=self.theme.bg
-        )
-        container.pack(
-            fill="both",
-            expand=True
-        )
+
+        container = tk.Frame(self._root_frame, bg=self.theme.bg)
+        container.pack(fill="both", expand=True)
+
+        # Ejecutar pipeline
+        self.pipeline_result = run_pipeline(self.validated_rut)
+
         self.pages["conica"] = ConicView(
-            container,
-            self.theme
-        )
-        self.pages["tramos"] = TramoView(
-            container,
-            self.theme
-        )
+            container, self.theme,
+            pipeline=self.pipeline_result,)
+        self.pages["tramos"] = TramoView(container, self.theme)
+
         for page in self.pages.values():
-            page.place(
-                x=0,
-                y=0,
-                relwidth=1,
-                relheight=1
-            )
-        # Inicializar datos de la vista cónica
-        self.pages["conica"].load_data()
+            page.place(x=0, y=0, relwidth=1, relheight=1)
+
         self._show_tab("conica")
+        
+        self.update_idletasks()
+        self.pages["conica"].load_data(self.validated_rut)
+        self.pages["tramos"].load_data(self.validated_rut)
 
     # ── Barra superior ──────────────────────────────────────────────────────
     def _build_topbar(self, parent):
@@ -285,4 +239,3 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
-

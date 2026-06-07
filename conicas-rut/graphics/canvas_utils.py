@@ -1,3 +1,5 @@
+# conicas-rut/graphics/canvas_utils.py
+
 """
 Utilidades compartidas para renderizado en canvas.
 

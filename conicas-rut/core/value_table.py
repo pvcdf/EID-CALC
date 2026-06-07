@@ -1,25 +1,24 @@
-from tramo_function import CrearVariables
+# conicas-rut/core/value_table.py
+
 
 def CrearTablaValores(a, funcion):
+    """
+    Genera la tabla de valores numéricos evaluados cerca de 'a' por ambos lados:
+        Izquierda : a-1, a-0.1, a-0.01, a-0.001
+        Derecha   : a+0.001, a+0.01, a+0.1, a+1
+    """
     deltas_izq = [-1, -0.1, -0.01, -0.001]
-    deltas_der = [0.001, 0.01, 0.1, 1]
-    
-    tabla_izq = []
-    for delta in deltas_izq:
-        x = a + delta
+    deltas_der = [ 0.001,  0.01,  0.1,  1]
+
+    def _evaluar(delta):
+        x = round(a + delta, 6)
         try:
             y = funcion(x)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, ValueError):
             y = None
-        tabla_izq.append({"x": x, "y": y})
-        
-    tabla_der = []
-    for delta in deltas_der:
-        x = a + delta
-        try:
-            y = funcion(x)
-        except ZeroDivisionError:
-            y = None
-        tabla_der.append({"x": x, "y": y})
-        
-    return {"izquierda": tabla_izq, "derecha": tabla_der}
+        return {"x": x, "y": y}
+
+    return {
+        "izquierda": [_evaluar(d) for d in deltas_izq],
+        "derecha":   [_evaluar(d) for d in deltas_der],
+    }

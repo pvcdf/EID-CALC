@@ -1,103 +1,208 @@
-from tramo_function import CrearVariables
+# conicas-rut/core/limit_analyzer.py
 
-def generar_tabla_aproximacion(funcion, a, direccion):
-    deltas = [0.1, 0.01, 0.001, 0.0001]
-    signo = -1 if direccion == "izquierda" else 1
-    simbolo = "-" if direccion == "izquierda" else "+"
-    
-    valores_y = []
-    for delta in deltas:
-        x = a + signo * delta
+from core.tramo_function import CrearVariables
+
+
+def _generar_tabla_aproximacion(funcion, a, direccion):
+    """
+    Evalúa f(x) en puntos que se aproximan a 'a' por izquierda o derecha.
+    """
+    deltas = [1, 0.1, 0.01, 0.001]
+    signo  = -1 if direccion == "izquierda" else 1
+    simbolo = "⁻" if direccion == "izquierda" else "⁺"
+
+    filas = []
+    for delta in (reversed(deltas) if direccion == "izquierda" else deltas):
+        x = round(a + signo * delta, 6)
         try:
             y = funcion(x)
-            valores_y.append(f"{y:.4f}")
-        except ZeroDivisionError:
-            valores_y.append("Indef")
-            
-    texto_aproximacion = f"x -> {a}{simbolo} -> f(x) = " + ", ".join(valores_y)
-    ultimo_valor = None
-    if valores_y[-1] != "Indef":
-        ultimo_valor = float(valores_y[-1])
-        
+            filas.append({"x": x, "y": y, "y_str": f"{y:.6f}"})
+        except (ZeroDivisionError, ValueError):
+            filas.append({"x": x, "y": None, "y_str": "Indef."})
+
+    ultimo = next((f["y"] for f in reversed(filas) if f["y"] is not None), None)
     return {
-        "texto": texto_aproximacion,
-        "ultimo_valor": ultimo_valor,
-        "progresion": valores_y
+        "filas":        filas,
+        "ultimo_valor": ultimo,
+        "simbolo":      simbolo,
     }
 
-def evaluar_en_punto(funcion, a):
-    try:
-        return funcion(a)
-    except ZeroDivisionError:
-        return None
 
-def limites_algebraicos_estructurados(tipo, a, digitos):
-    explicacion_formal = {
-        "identificacion": f"Analisis de discontinuidad en x = {a} basada en el digito d8 ({digitos['d8']}).",
-        "preliminar": "",
-        "demostracion": []
-    }
-    
+def _limites_algebraicos(tipo, a, digitos):
+    """
+    Calcula límites laterales y genera el desarrollo paso a paso para mostrar
+    """
+    d1 = digitos["d1"]
+    d2 = digitos["d2"]
+    d4 = digitos["d4"]
+    d5 = digitos["d5"]
+
+    desarrollo = []
+
     if tipo == "removible":
-        limite = a + digitos["d1"]
-        explicacion_formal["preliminar"] = f"Se construyo f(x) = ((x - {a})(x + {digitos['d1']})) / (x - {a})"
-        explicacion_formal["demostracion"].append(f"Simplificando el factor (x - {a}), la funcion equivalente es f(x) = x + {digitos['d1']} para todo x distinto de {a}.")
-        explicacion_formal["demostracion"].append(f"Evaluando el limite directamente: {a} + {digitos['d1']} = {limite}.")
-        return limite, limite, explicacion_formal
-        
-    elif tipo == "salto":
-        lim_izq = a + digitos["d2"]
-        lim_der = a + digitos["d4"]
-        explicacion_formal["preliminar"] = f"Funcion definida por tramos separada en x = {a}."
-        explicacion_formal["demostracion"].append(f"Limite por izquierda (x < {a}): se evalua (x + {digitos['d2']}) resultando en {a} + {digitos['d2']} = {lim_izq}.")
-        explicacion_formal["demostracion"].append(f"Limite por derecha (x >= {a}): se evalua (x + {digitos['d4']}) resultando en {a} + {digitos['d4']} = {lim_der}.")
-        explicacion_formal["demostracion"].append(f"Como {lim_izq} es distinto de {lim_der}, el limite bilateral no existe.")
-        return lim_izq, lim_der, explicacion_formal
-        
-    elif tipo == "infinita":
-        numerador = digitos["d5"] + 1
-        explicacion_formal["preliminar"] = f"Se construyo la fraccion f(x) = {numerador} / (x - {a})."
-        explicacion_formal["demostracion"].append(f"Al evaluar x -> {a}, el denominador tiende a 0 mientras el numerador se mantiene en {numerador}.")
-        explicacion_formal["demostracion"].append(f"La division por cero genera un crecimiento infinito (asintota vertical).")
-        return None, None, explicacion_formal
-        
-    return None, None, explicacion_formal
+        limite = a + d1
+        desarrollo.append(
+            f"f(x) = ((x − {a})(x + {d1})) / (x − {a})"
+        )
+        desarrollo.append(
+            f"Para x ≠ {a}, se cancela el factor (x − {a}):"
+        )
+        desarrollo.append(
+            f"f(x) = x + {d1}"
+        )
+        desarrollo.append(
+            f"lím(x→{a}) f(x) = {a} + {d1} = {limite}"
+        )
+        return limite, limite, desarrollo
 
-def AnalizarLimites(Rut):
-    datos = CrearVariables(Rut)
+    elif tipo == "salto":
+        lim_izq = a + d2
+        lim_der = a + d4
+        desarrollo.append(
+            f"Tramo izquierdo (x < {a}): f(x) = x + {d2}"
+        )
+        desarrollo.append(
+            f"lím(x→{a}⁻) f(x) = {a} + {d2} = {lim_izq}"
+        )
+        desarrollo.append(
+            f"Tramo derecho (x ≥ {a}): f(x) = x + {d4}"
+        )
+        desarrollo.append(
+            f"lím(x→{a}⁺) f(x) = {a} + {d4} = {lim_der}"
+        )
+        if lim_izq != lim_der:
+            desarrollo.append(
+                f"Como {lim_izq} ≠ {lim_der}, el límite bilateral NO existe."
+            )
+        else:
+            desarrollo.append(
+                f"Como {lim_izq} = {lim_der}, el límite bilateral existe y vale {lim_izq}."
+            )
+        return lim_izq, lim_der, desarrollo
+
+    elif tipo == "infinita":
+        numerador = d5 + 1
+        desarrollo.append(
+            f"f(x) = {numerador} / (x − {a})"
+        )
+        desarrollo.append(
+            f"Cuando x → {a}⁻: (x − {a}) → 0⁻  →  f(x) → "
+            f"{'−∞' if numerador > 0 else '+∞'}"
+        )
+        desarrollo.append(
+            f"Cuando x → {a}⁺: (x − {a}) → 0⁺  →  f(x) → "
+            f"{'+∞' if numerador > 0 else '−∞'}"
+        )
+        desarrollo.append(
+            f"Los límites laterales divergen. El límite bilateral no existe."
+        )
+        desarrollo.append(
+            f"Asíntota vertical en x = {a}."
+        )
+        return None, None, desarrollo
+
+    return None, None, []
+
+
+def AnalizarLimites(rut_data):
+    """
+    Analiza límites y continuidad de la función en el punto crítico 'a'.
+    """
+    datos   = CrearVariables(rut_data)
     funcion = datos["funcion"]
-    a = datos["a"]
-    tipo = datos["tipo_discontinuidad"]
+    a       = datos["a"]
+    tipo    = datos["tipo_discontinuidad"]
     digitos = datos["digitos"]
 
-    tabla_izq = generar_tabla_aproximacion(funcion, a, "izquierda")
-    tabla_der = generar_tabla_aproximacion(funcion, a, "derecha")
-    valor_en_punto = evaluar_en_punto(funcion, a)
-    
-    lim_izq_alg, lim_der_alg, explicacion = limites_algebraicos_estructurados(tipo, a, digitos)
+    # Tablas numéricas
+    t_izq = _generar_tabla_aproximacion(funcion, a, "izquierda")
+    t_der = _generar_tabla_aproximacion(funcion, a, "derecha")
 
+    # Valor en el punto
+    try:
+        valor_en_punto = funcion(a)
+    except (ZeroDivisionError, ValueError):
+        valor_en_punto = None
+
+    # Límites algebraicos
+    lim_izq, lim_der, desarrollo = _limites_algebraicos(tipo, a, digitos)
+
+    # Determinar existencia del límite
     if tipo == "infinita":
         limite_existe = False
-        es_continua = False
-        conclusion_tabla = f"Ambos limites divergen hacia infinito, confirmando asintota en x = {a}."
+        es_continua   = False
+    elif tipo == "removible":
+        limite_existe = True     # lim_izq == lim_der == a + d1
+        es_continua   = False    # f(a) no está definida
+    elif tipo == "salto":
+        limite_existe = (lim_izq == lim_der)
+        es_continua   = limite_existe and valor_en_punto is not None and abs(valor_en_punto - lim_izq) < 1e-9
     else:
-        limite_existe = lim_izq_alg == lim_der_alg
-        es_continua = limite_existe and valor_en_punto is not None and abs(valor_en_punto - lim_izq_alg) < 0.0001
-        
+        limite_existe = False
+        es_continua   = False
+
+    # Conclusiones en texto
+    if tipo == "infinita":
+        conclusion_limite = (
+            f"El límite cuando x → {a} NO existe: "
+            f"los límites laterales divergen hacia ±∞."
+        )
+        clasificacion = "Discontinuidad Esencial (Infinita)"
+        justificacion = (
+            f"f(x) = {digitos['d5']+1}/(x−{a}) tiene una asíntota vertical "
+            f"en x = {a}. El denominador se anula en ese punto y el numerador "
+            f"no, por lo que f(x) crece/decrece sin límite."
+        )
+    elif tipo == "removible":
+        lim_val = lim_izq
+        conclusion_limite = (
+            f"El límite cuando x → {a} EXISTE y vale {lim_val}."
+        )
+        clasificacion = "Discontinuidad Removible"
+        justificacion = (
+            f"lím(x→{a}) f(x) = {lim_val} existe, pero f({a}) no está definida. "
+            f"Podría «removerse» definiendo f({a}) = {lim_val}."
+        )
+    else:  # salto
         if limite_existe:
-            conclusion_tabla = f"Ambos limites se aproximan a {lim_izq_alg}, por lo tanto el limite bilateral existe."
+            conclusion_limite = (
+                f"El límite cuando x → {a} EXISTE y vale {lim_izq} "
+                f"(límites laterales iguales)."
+            )
+            clasificacion = "Función Continua en x = " + str(a)
+            justificacion = (
+                f"Ambos límites laterales coinciden en {lim_izq} y f({a}) = {valor_en_punto}."
+            )
         else:
-            conclusion_tabla = f"Los limites se aproximan a valores distintos ({lim_izq_alg} y {lim_der_alg}), el limite bilateral no existe."
+            conclusion_limite = (
+                f"El límite cuando x → {a} NO existe: "
+                f"lím izquierdo = {lim_izq}, lím derecho = {lim_der}."
+            )
+            clasificacion = "Discontinuidad de Salto"
+            justificacion = (
+                f"Los límites laterales son distintos ({lim_izq} ≠ {lim_der}), "
+                f"por lo que el límite bilateral no existe. "
+                f"La función «salta» de {lim_izq} a {lim_der} en x = {a}."
+            )
+
+    if es_continua:
+        conclusion_continuidad = f"f es CONTINUA en x = {a}."
+    else:
+        conclusion_continuidad = f"f NO es continua en x = {a}."
 
     return {
-        "a": a,
-        "valor_en_punto": valor_en_punto,
-        "limite_existe": limite_existe,
-        "es_continua": es_continua,
-        "tablas_aproximacion": {
-            "izquierda": tabla_izq["texto"],
-            "derecha": tabla_der["texto"],
-            "conclusion": conclusion_tabla
-        },
-        "explicacion_formal": explicacion
+        "a":                    a,
+        "tipo":                 tipo,
+        "lim_izquierdo":        lim_izq,
+        "lim_derecho":          lim_der,
+        "limite_existe":        limite_existe,
+        "valor_en_punto":       valor_en_punto,
+        "es_continua":          es_continua,
+        "tabla_izquierda":      t_izq["filas"],
+        "tabla_derecha":        t_der["filas"],
+        "desarrollo_algebraico": desarrollo,
+        "conclusion_limite":    conclusion_limite,
+        "conclusion_continuidad": conclusion_continuidad,
+        "clasificacion_discontinuidad": clasificacion,
+        "justificacion":        justificacion,
     }

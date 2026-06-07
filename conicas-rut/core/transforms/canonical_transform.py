@@ -1,3 +1,4 @@
+# conicas-rut/core/transforms/canonical_transform.py
 
 from core.result_models import build_error
 from core.transforms.circle_transform import (transform_circle)
