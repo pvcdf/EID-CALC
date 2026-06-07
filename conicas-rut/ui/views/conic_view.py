@@ -141,13 +141,27 @@ class ConicView(Frame):
                 highlightthickness=1,
             )
             entry.pack(fill="x", ipady=4)
-            
-            # Registrar callback para cambios en tiempo real
-            var.trace_add("write", lambda *args, key=label_text.lower().split()[0]: self._on_element_changed(key))
 
-        # Botón "Mostrar respuesta"
+        # Frame para botones
+        btn_frame = Frame(elem_card, bg=t.card)
+        btn_frame.pack(fill="x", pady=(8, 0))
+        
+        # Botón "Actualizar gráfico"
         tk.Button(
-            elem_card,
+            btn_frame,
+            text="Actualizar gráfico",
+            bg=t.card, fg=t.accent2,
+            font=t.fonts["small"],
+            bd=0, cursor="hand2",
+            relief="flat",
+            activebackground=t.panel,
+            activeforeground=t.accent,
+            command=self._actualizar_grafico,
+        ).pack(side="left", fill="both", expand=True, padx=(0, 4))
+        
+        # Botón "Mostrar respuesta" con referencia para actualizar estado
+        self._mostrar_respuesta_btn = tk.Button(
+            btn_frame,
             text="Mostrar respuesta",
             bg=t.card, fg=t.accent,
             font=t.fonts["small"],
@@ -156,7 +170,14 @@ class ConicView(Frame):
             activebackground=t.panel,
             activeforeground=t.accent2,
             command=self._mostrar_respuesta,
-        ).pack(fill="x", pady=(8, 0))
+            state="disabled",
+        )
+        self._mostrar_respuesta_btn.pack(side="left", fill="both", expand=True)
+        
+        # Registrar callback para actualizar estado del botón cuando cambian los datos
+        self.centro_var.trace_add("write", lambda *args: self._update_mostrar_respuesta_btn())
+        self.foco_var.trace_add("write", lambda *args: self._update_mostrar_respuesta_btn())
+        self.vertice_var.trace_add("write", lambda *args: self._update_mostrar_respuesta_btn())
 
         # Pasos coeficientes
         SectionHeader(content, "Pasos — Coeficientes", t).pack(
@@ -600,23 +621,73 @@ class ConicView(Frame):
             if self._plotter:
                 self._plotter.clear_user_elements()
 
+    def _actualizar_grafico(self):
+        """Actualiza el gráfico con los valores ingresados en los campos de entrada."""
+        if not self._plotter or not self._active_transform:
+            return
+        
+        # Construir dict con elementos válidos del usuario
+        elementos = {}
+        
+        # Centro
+        coord_centro = self._parse_coordinate(self.centro_var.get())
+        if coord_centro:
+            elementos["Centro"] = coord_centro
+        
+        # Foco
+        coord_foco = self._parse_coordinate(self.foco_var.get())
+        if coord_foco:
+            elementos["Foco"] = coord_foco
+        
+        # Vértice
+        coord_vertice = self._parse_coordinate(self.vertice_var.get())
+        if coord_vertice:
+            elementos["Vértice"] = coord_vertice
+        
+        # Limpiar y redibujar con los elementos ingresados
+        self._plotter.clear_user_elements()
+        if elementos:
+            self._plotter.draw_user_elements(elementos, self._active_transform)
+
     def _mostrar_respuesta(self):
         """Rellena los campos con los elementos correctos del core y los dibuja."""
         if not self._correct_elements or not self._plotter or not self._active_transform:
             return
         
-        # Mapear claves del core a variables
+        # Construir diccionario con elementos formateados
+        elementos = {}
+        
+        # Mapear claves del core a variables y al diccionario para dibujo
         if "Center" in self._correct_elements:
             coord = self._correct_elements["Center"]
-            self.centro_var.set(f"{coord[0]:.2f},{coord[1]:.2f}")
+            formatted = f"{coord[0]:.2f},{coord[1]:.2f}"
+            self.centro_var.set(formatted)
+            elementos["Centro"] = coord
         
         if "Vertex" in self._correct_elements:
             coord = self._correct_elements["Vertex"]
-            self.vertice_var.set(f"{coord[0]:.2f},{coord[1]:.2f}")
+            formatted = f"{coord[0]:.2f},{coord[1]:.2f}"
+            self.vertice_var.set(formatted)
+            elementos["Vértice"] = coord
         
         # Limpiar y redibujar con elementos correctos
         self._plotter.clear_user_elements()
-        self._plotter.draw_user_elements(self._correct_elements, self._active_transform)
+        if elementos:
+            self._plotter.draw_user_elements(elementos, self._active_transform)
+
+    def _update_mostrar_respuesta_btn(self):
+        """Actualiza el estado del botón 'Mostrar respuesta' según los datos disponibles."""
+        if not hasattr(self, '_mostrar_respuesta_btn'):
+            return
+        
+        # Verificar si hay elementos correctos del core disponibles
+        has_correct_elements = bool(self._correct_elements)
+        
+        # Activar botón si hay elementos correctos
+        if has_correct_elements:
+            self._mostrar_respuesta_btn.config(state="normal")
+        else:
+            self._mostrar_respuesta_btn.config(state="disabled")
 
     def _load_data_internals(self, transform):
         """Carga referencias internas del transform y crea CoordinateTransform."""
@@ -635,6 +706,9 @@ class ConicView(Frame):
             vertex = transform["vertex"]
             if isinstance(vertex, (tuple, list)) and len(vertex) == 2:
                 self._correct_elements["Vertex"] = tuple(vertex)
+        
+        # Actualizar estado del botón después de cargar elementos correctos
+        self._update_mostrar_respuesta_btn()
         
         # Crear transform para coordenadas
         try:
