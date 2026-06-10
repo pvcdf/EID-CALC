@@ -1,4 +1,11 @@
-# canvas_utils.py
+# conicas-rut/graphics/canvas_utils.py
+
+"""
+Utilidades compartidas para renderizado en canvas.
+
+Proporciona funciones para transformaciones de coordenadas, escalado y
+conversión entre espacios de coordenadas matemáticas y canvas.
+"""
 
 class CoordinateTransform:
     """Gestiona la transformación entre coordenadas matemáticas y canvas."""
