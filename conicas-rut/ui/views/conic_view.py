@@ -63,9 +63,11 @@ class ConicView(Frame):
         Label(eq_card, text="Ecuación general", bg=t.card, fg=t.gray,
               font=t.fonts["small"]).pack(anchor="w")
         self._eq_label = Label(eq_card, text="—", bg=t.card, fg=t.fg,
-                               font=t.fonts["mono_sm"],
-                               wraplength=200, justify="left")
-        self._eq_label.pack(anchor="w", pady=(4, 0))
+                       font=t.fonts["mono_sm"],
+                       anchor="w", justify="left",
+                       wraplength=1)
+        self._eq_label.pack(fill="x", pady=(4, 0))
+        self._eq_label.bind("<Configure>", lambda e: self._eq_label.configure(wraplength=e.width - 4))
 
         cls_card = CardFrame(self.left, t, padx=12, pady=10)
         cls_card.pack(fill="x", pady=(10, 0))
@@ -105,9 +107,10 @@ class ConicView(Frame):
         Label(can_card, text="Ecuación canónica", bg=t.card, fg=t.gray,
               font=t.fonts["small"]).pack(anchor="w")
         self._canonical_label = Label(can_card, text="—", bg=t.card,
-                                       fg=t.accent2, font=t.fonts["mono_sm"],
-                                       wraplength=270, justify="left")
-        self._canonical_label.pack(anchor="w", pady=(4, 0))
+                                    fg=t.accent2, font=t.fonts["mono_sm"], anchor="w",
+                                    wraplength=1, justify="left")
+        self._canonical_label.pack(fill="x", pady=(4, 0))
+        self._canonical_label.bind("<Configure>", lambda e: self._canonical_label.configure(wraplength=e.width - 4))
 
         self._elements_card = CardFrame(self.right, t, padx=12, pady=10)
         self._elements_card.pack(fill="x", pady=(10, 0))

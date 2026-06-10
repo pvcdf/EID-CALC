@@ -1,5 +1,5 @@
 # conicas-rut/ui/views/tramo_view.py
-
+import re
 import tkinter as tk
 from tkinter import Frame, Label, Entry
 
@@ -29,7 +29,7 @@ class TramoView(Frame):
         self.configure(bg=t.bg)
         self.columnconfigure(0, weight=0, minsize=250)
         self.columnconfigure(1, weight=1, minsize=500)
-        self.columnconfigure(2, weight=0, minsize=310)
+        self.columnconfigure(2, weight=1, minsize=380)
         self.rowconfigure(0, weight=1)
 
         self._build_left()
@@ -87,8 +87,9 @@ class TramoView(Frame):
         rule_card.pack(fill="x", pady=(6, 0))
         self._rule_label = Label(
             rule_card, text="—", bg=t.card, fg=t.gray,
-            font=t.fonts["small"], wraplength=210, justify="left", anchor="w")
+            font=t.fonts["small"], wraplength=1, justify="left", anchor="w")
         self._rule_label.pack(fill="x")
+        self._rule_label.bind("<Configure>", lambda e: self._rule_label.configure(wraplength=e.width - 4))
 
         # Pasos
         SectionHeader(self.left, "Pasos — Generación", t).pack(
@@ -121,21 +122,21 @@ class TramoView(Frame):
 
         tbl_card = CardFrame(self.right, t, padx=8, pady=6)
         tbl_card.pack(fill="x", pady=(8, 0))
+        tbl_card.columnconfigure(0, weight=1)
+        tbl_card.columnconfigure(1, weight=1)
+        tbl_card.columnconfigure(2, weight=1, minsize=100)
 
         # Encabezado fijo
-        hdr = Frame(tbl_card, bg=t.card)
-        hdr.pack(fill="x")
-        hdr.columnconfigure(0, weight=1)
-        hdr.columnconfigure(1, weight=1)
-        hdr.columnconfigure(2, weight=0, minsize=50)
         for col_i, txt in enumerate(["x", "f(x)", "Lado"]):
-            Label(hdr, text=txt, bg=t.card, fg=t.gray,
-                  font=t.fonts["mono_sm"], anchor="center").grid(
+            Label(tbl_card, text=txt, bg=t.card, fg=t.gray,
+                font=t.fonts["mono_sm"], anchor="center").grid(
                 row=0, column=col_i, sticky="ew", padx=4, pady=(0, 4))
 
-        Frame(tbl_card, bg=t.border, height=1).pack(fill="x")
-        self._table_body = Frame(tbl_card, bg=t.card)
-        self._table_body.pack(fill="x")
+        Frame(tbl_card, bg=t.border, height=1).grid(
+            row=1, column=0, columnspan=3, sticky="ew")
+
+        self._table_body = tbl_card  # el body ES la misma card
+        self._table_body_start_row = 2  # las filas de datos empiezan en row=2
 
         # ── Análisis de límites───────────────────────────
         SectionHeader(self.right, "Análisis de límites", t).pack(
@@ -225,7 +226,10 @@ class TramoView(Frame):
             self._expr_f1.config(text=f"f(x) = {d['expr_f1']}")
             self._expr_f2.config(text="")
 
-        self._rule_label.config(text=d["explicacion"])
+        texto = d["explicacion"]
+        oraciones = [s.strip() for s in re.split(r'[.;]+', texto) if s.strip()]
+        texto_lista = "\n• " + "\n• ".join(oraciones)
+        self._rule_label.config(text=texto_lista)
 
     # ── Poblar pasos ──────────────────────────────────────────────────────
 
@@ -243,12 +247,10 @@ class TramoView(Frame):
 
     def _populate_table(self, tabla):
         t = self.theme
+        # Limpiar solo las filas de datos (desde row 2 en adelante)
         for w in self._table_body.winfo_children():
-            w.destroy()
-
-        self._table_body.columnconfigure(0, weight=1)
-        self._table_body.columnconfigure(1, weight=1)
-        self._table_body.columnconfigure(2, weight=0, minsize=50)
+            if int(w.grid_info().get("row", 0)) >= 2:
+                w.destroy()
 
         rows = (
             [(r, "◀ izq") for r in tabla["izquierda"]] +
@@ -256,25 +258,26 @@ class TramoView(Frame):
         )
 
         for idx, (row, lado) in enumerate(rows):
-            # Separador visual entre izquierda y derecha
+            actual_row = idx + 2  # offset por encabezado y separador
+
             if idx == len(tabla["izquierda"]):
                 Frame(self._table_body, bg=t.border, height=1).grid(
-                    row=idx * 2, column=0, columnspan=3, sticky="ew")
+                    row=actual_row, column=0, columnspan=3, sticky="ew")
+                actual_row += 1
 
             bg      = t.card if idx % 2 == 0 else t.panel
-            x_str   = f"{row['x']:.4f}"
-            y_str   = f"{row['y']:.4f}" if row["y"] is not None else "Indef."
+            x_str   = f"{row['x']:.2f}"
+            y_str   = f"{row['y']:.2f}" if row["y"] is not None else "Indef."
             y_color = t.accent2 if row["y"] is not None else "#F87171"
 
-            row_idx = idx * 2 + (1 if idx >= len(tabla["izquierda"]) else 0)
             for col_i, (txt, fg) in enumerate([
                 (x_str, t.gray),
                 (y_str, y_color),
                 (lado,  t.gray),
             ]):
                 Label(self._table_body, text=txt, bg=bg, fg=fg,
-                      font=t.fonts["mono_sm"], anchor="center").grid(
-                    row=idx, column=col_i, sticky="ew", padx=4, pady=2)
+                    font=t.fonts["mono_sm"], anchor="center").grid(
+                    row=actual_row, column=col_i, sticky="ew", padx=4, pady=2)
 
     # ── Renderizado del gráfico ───────────────────────────────────────────
 
