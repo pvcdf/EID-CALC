@@ -39,14 +39,6 @@ def build_success(
 ) -> dict:
     """
     Construye un resultado exitoso con estructura estándar.
-
-    Parámetros
-    ----------
-    conic_type  : Tipo de cónica ('circle', 'ellipse', 'hyperbola', 'parabola')
-    explanation : Resumen legible (una oración) del resultado matemático
-    steps       : Lista de strings con el procedimiento matemático paso a paso
-    data        : Diccionario con resultados numéricos específicos del módulo
-                  (centro, vértices, focos, radios, etc.)
     """
     return {
         "valid":       True,
@@ -66,11 +58,6 @@ def build_error(
     """
     Construye un resultado de error con estructura estándar.
 
-    Parámetros
-    ----------
-    error : Mensaje descriptivo del problema encontrado
-    steps : Pasos realizados antes de encontrar el error (contexto para debug)
-    data  : Datos parciales disponibles (útiles para diagnóstico)
     """
     return {
         "valid":       False,

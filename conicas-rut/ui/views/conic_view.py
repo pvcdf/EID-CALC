@@ -8,9 +8,6 @@ from ui.components.header import SectionHeader
 from ui.components.panel import PanelFrame
 from ui.components.step_display import StepContainer
 
-from core.coef_builder import build_coefficients
-from core.conic_classifier import classify_conic
-from core.transforms.canonical_transform import transform_conic
 from graphics.conic_plotter import ConicPlotter
 
 class ConicView(Frame):
@@ -216,7 +213,6 @@ class ConicView(Frame):
         transform_ok = transform.get("valid", False)
         transform_data = transform.get("data", {})
         if transform_ok:
-            # Cónica real: mostrar todo normalmente
             self._canonical_label.config(
                 text=transform_data.get("canonical_form", "—"))
             self._populate_elements(self._conic_type)
@@ -368,40 +364,6 @@ class ConicView(Frame):
             self._element_entries[key] = entry
 
     # ── Helpers ───────────────────────────────────────────────────────────
-
-    def _strings_to_steps(self, raw: list[str]) -> list[dict]:
-        steps = []
-        current_title = None
-        current_lines = []
-        for line in raw:
-            line = line.strip()
-            if not line:
-                if current_title:
-                    steps.append({
-                        "title": current_title,
-                        "explanation": " ".join(current_lines) or None,
-                    })
-                    current_title = None
-                    current_lines = []
-                continue
-            if line.startswith("PASO") or line.startswith("[Regla"):
-                if current_title:
-                    steps.append({
-                        "title": current_title,
-                        "explanation": " ".join(current_lines) or None,
-                    })
-                current_title = line.rstrip(" ══")
-                current_lines = []
-            elif current_title is None:
-                current_title = line
-            else:
-                current_lines.append(line)
-        if current_title:
-            steps.append({
-                "title": current_title,
-                "explanation": " ".join(current_lines) or None,
-            })
-        return steps
 
     def _reveal_elements(self):
         """Rellena los Entry de elementos con los valores calculados."""

@@ -20,59 +20,74 @@ class StepItem(CardFrame):
         super().__init__(master, theme, *args, **kwargs)
         self.theme = theme
 
-        title_label = tk.Label(
+        # ── Título ────────────────────────────────────────────────────────
+        tk.Label(
             self,
             text=f"▸ {title}",
             bg=self.theme.card,
             fg=self.theme.accent,
             font=self.theme.fonts["label"],
             anchor="w",
-        )
-        title_label.pack(fill="x", padx=8, pady=(8, 4))
+            justify="left",
+        ).pack(fill="x", padx=8, pady=(8, 4))
 
+        # ── Explicación (texto largo) ──────────────────────────────────────
         if explanation:
-            tk.Label(
+            lbl = tk.Label(
                 self,
                 text=explanation,
                 bg=self.theme.card,
                 fg=self.theme.fg,
                 font=self.theme.fonts["small"],
-                wraplength=340,
+                anchor="w",
                 justify="left",
-            ).pack(fill="x", padx=12, pady=(0, 4))
+                wraplength=1,           # ✓ FIX: se actualiza dinámicamente en _update_wrap
+            )
+            lbl.pack(fill="x", padx=12, pady=(0, 4))
+            lbl.bind("<Configure>", lambda e, l=lbl: l.configure(wraplength=e.width - 4))
 
+        # ── Ecuación ──────────────────────────────────────────────────────
         if equation:
-            tk.Label(
+            lbl_eq = tk.Label(
                 self,
                 text=equation,
                 bg=self.theme.card,
                 fg=self.theme.accent2,
                 font=self.theme.fonts["mono"],
-                wraplength=340,
+                anchor="w",
                 justify="left",
-            ).pack(fill="x", padx=12, pady=(4, 4))
+                wraplength=1,           # ✓ FIX: mismo tratamiento
+            )
+            lbl_eq.pack(fill="x", padx=12, pady=(4, 4))
+            lbl_eq.bind("<Configure>", lambda e, l=lbl_eq: l.configure(wraplength=e.width - 4))
 
+        # ── Resultado ─────────────────────────────────────────────────────
         if result:
             tk.Label(
                 self,
-                text=f"✓ Resultado: {result}",
+                text=f" Resultado: {result}",
                 bg=self.theme.card,
                 fg=self.theme.green,
                 font=self.theme.fonts["label"],
-                wraplength=340,
+                anchor="w",
                 justify="left",
+                wraplength=0,
             ).pack(fill="x", padx=12, pady=(4, 4))
 
+        # ── Observación ───────────────────────────────────────────────────
         if observation:
-            tk.Label(
+            lbl_obs = tk.Label(
                 self,
                 text=f"ℹ {observation}",
                 bg=self.theme.card,
                 fg=self.theme.gray,
                 font=self.theme.fonts["small"],
-                wraplength=340,
+                anchor="w",
                 justify="left",
-            ).pack(fill="x", padx=12, pady=(4, 8))
+                wraplength=1,
+            )
+            lbl_obs.pack(fill="x", padx=12, pady=(4, 8))
+            lbl_obs.bind("<Configure>", lambda e, l=lbl_obs: l.configure(wraplength=e.width - 4))
 
     def update_theme(self, theme):
         super().update_theme(theme)
@@ -84,11 +99,17 @@ class StepContainer(tk.Frame):
         super().__init__(master, bg=theme.panel, *args, **kwargs)
         self.theme = theme
 
-        self._canvas = tk.Canvas(self, bg=self.theme.panel, highlightthickness=0, borderwidth=0)
-        self._vscroll = tk.Scrollbar(self, orient="vertical", command=self._canvas.yview)
+        self._canvas = tk.Canvas(
+            self, bg=self.theme.panel, highlightthickness=0, borderwidth=0
+        )
+        self._vscroll = tk.Scrollbar(
+            self, orient="vertical", command=self._canvas.yview
+        )
         self._inner = tk.Frame(self._canvas, bg=self.theme.panel)
 
-        self._inner_id = self._canvas.create_window((0, 0), window=self._inner, anchor="nw")
+        self._inner_id = self._canvas.create_window(
+            (0, 0), window=self._inner, anchor="nw"
+        )
         self._canvas.configure(yscrollcommand=self._vscroll.set)
 
         self._canvas.grid(row=0, column=0, sticky="nsew")
@@ -106,11 +127,12 @@ class StepContainer(tk.Frame):
         self._canvas.configure(scrollregion=self._canvas.bbox("all"))
 
     def _on_canvas_resize(self, event):
-        inner_width = self._inner.winfo_reqwidth()
-        width = max(inner_width, event.width)
-        self._canvas.itemconfigure(self._inner_id, width=width)
+        # ✓ FIX: el inner siempre ocupa el ancho completo del canvas
+        self._canvas.itemconfigure(self._inner_id, width=event.width)
 
-    def add_step(self, title, explanation, equation=None, result=None, observation=None):
+    def add_step(
+        self, title, explanation, equation=None, result=None, observation=None
+    ):
         item = StepItem(
             self._inner,
             title,
@@ -119,7 +141,7 @@ class StepContainer(tk.Frame):
             equation=equation,
             result=result,
             observation=observation,
-            pady=2,
+            pady=4,
         )
         item.pack(fill="x", pady=(0, 10), padx=4)
         self.step_items.append(item)

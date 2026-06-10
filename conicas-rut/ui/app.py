@@ -24,7 +24,7 @@ class App(tk.Tk):
         self.theme = ThemeState(COLORS, get_fonts())
         self.F = self.theme.fonts
         # Configuración ventana
-        self.title("CónicasRUT — MAT1186")
+        self.title("Cónicas y Límites de un RUT — MAT1186")
         self.configure(bg=self.theme.bg)
         self.resizable(True, True)
         self._maximize_window()
@@ -90,7 +90,7 @@ class App(tk.Tk):
         center.place(relx=0.5, rely=0.5, anchor="center")
         tk.Label(center, text="◈", bg=self.theme.bg, fg=self.theme.accent, font=self.F["title"]
         ).pack(anchor="center")
-        tk.Label(center, text="CónicasRUT", bg=self.theme.bg, fg=self.theme.fg, font=self.F["title"]
+        tk.Label(center, text="Cónicas y Límites de un RUT", bg=self.theme.bg, fg=self.theme.fg, font=self.F["title"]
         ).pack(anchor="center")
         tk.Label(center, text="MAT1186 — Ingeniería Civil en Informática", bg=self.theme.bg, fg=self.theme.gray, font=self.F["small"]
         ).pack(anchor="center", pady=(2, 30))

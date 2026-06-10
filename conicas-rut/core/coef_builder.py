@@ -112,7 +112,7 @@ def build_coefficients(rut_data: dict) -> dict:
     steps.append({
         "title": "Paso 2 — Ajustes para variedad de cónicas",
         "explanation": (
-            "Se aplican las reglas del PDF en orden. "
+            "Se aplican las reglas en orden. "
             "Cada condición es independiente: si aplica, modifica el coeficiente."
         ),
     })
