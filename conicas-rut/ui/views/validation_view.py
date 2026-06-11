@@ -1,8 +1,6 @@
 # conicas-rut/ui/views/validation_view.py
 
 import tkinter as tk
-from core.rut_steps_adapter import parse_rut_steps
-
 
 class ValidationView(tk.Frame):
     """
@@ -108,7 +106,7 @@ class ValidationView(tk.Frame):
         right.columnconfigure(0, weight=1)
 
         # Sub-header
-        steps_data = parse_rut_steps(self.rut_result)
+        steps_data = self.rut_result.get("steps", [])
         subheader = tk.Frame(right, bg=t.bg)
         subheader.grid(row=0, column=0, sticky="ew", padx=32, pady=(28, 12))
         tk.Label(subheader, text="Proceso módulo 11",

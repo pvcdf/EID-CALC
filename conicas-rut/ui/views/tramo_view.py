@@ -229,8 +229,7 @@ class TramoView(Frame):
         pasos = []
         for i, texto in enumerate(d["pasos_preliminares"]):
             pasos.append({"title": f"Paso {i + 1}", "explanation": texto})
-        for i, linea in enumerate(an["desarrollo_algebraico"]):
-            pasos.append({"title": f"Desarrollo {i + 1}", "explanation": linea})
+        pasos += an["desarrollo_algebraico"]
         self.step_container.set_steps(pasos)
 
     # ── Poblar tabla de valores ───────────────────────────────────────────
