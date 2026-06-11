@@ -22,8 +22,8 @@ class ValidationView(tk.Frame):
 
         body = tk.Frame(self, bg=t.bg)
         body.pack(fill="both", expand=True)
-        body.columnconfigure(0, weight=0, minsize=550)
-        body.columnconfigure(1, weight=1)
+        body.columnconfigure(0, weight=1)
+        body.columnconfigure(1, weight=5)
         body.rowconfigure(0, weight=1)
 
         self._build_sidebar(body)
@@ -65,6 +65,8 @@ class ValidationView(tk.Frame):
         self._info_card(left, "Resultado",           exp,  t.green,  t.fonts["label"],
                         wrap=200)
 
+
+        tk.Frame(left, bg=t.panel).pack(fill="both", expand=True)
         btn_frame = tk.Frame(left, bg=t.panel)
         btn_frame.pack(side="bottom", fill="x", padx=16, pady=24)
         tk.Button(
@@ -117,7 +119,7 @@ class ValidationView(tk.Frame):
 
         # Canvas con scroll
         canvas_frame = tk.Frame(right, bg=t.bg)
-        canvas_frame.grid(row=1, column=0, sticky="nsew", padx=(32, 0), pady=(0, 16))
+        canvas_frame.grid(row=1, column=0, sticky="nsew", padx=(20, 20), pady=(0, 16))
         canvas_frame.rowconfigure(0, weight=1)
         canvas_frame.columnconfigure(0, weight=1)
 
@@ -154,7 +156,7 @@ class ValidationView(tk.Frame):
             row = tk.Frame(parent, bg=row_bg)
             row.pack(fill="x", pady=(0, 2))
             row.columnconfigure(0, weight=0, minsize=44)
-            row.columnconfigure(1, weight=0, minsize=180)
+            row.columnconfigure(1, weight=0, minsize=260)
             row.columnconfigure(2, weight=1)
 
             # Número
@@ -188,34 +190,51 @@ class ValidationView(tk.Frame):
 
             # Resultado — row=1, col=2
             if step.get("result"):
-                res = tk.Frame(row, bg=row_bg)
-                res.grid(row=1, column=2, sticky="w",
-                        padx=(8, 24), pady=(0, 2))
-                tk.Label(res, text="= ", bg=row_bg, fg=t.gray,
-                        font=t.fonts["small"]).pack(side="left")
-                tk.Label(res, text=step["result"],
-                        bg=row_bg, fg=t.green,
-                        font=t.fonts["label"]).pack(side="left")
+                tk.Label(
+                    row,
+                    text=step["result"],
+                    bg=row_bg,
+                    fg=t.green,
+                    font=t.fonts["label"],
+                    anchor="w",
+                    justify="left",
+                ).grid(
+                    row=1,
+                    column=1,
+                    columnspan=2,
+                    sticky="w",
+                    padx=(16, 24),
+                    pady=(0, 2),
+                )
 
             # Explanation — row=2, columnspan=2, SIEMPRE debajo de todo
             if step.get("explanation"):
                 tk.Label(row, text=step["explanation"],
                         bg=row_bg, fg=t.gray,
                         font=t.fonts["small"],
-                        wraplength=700, justify="left",
+                        wraplength=1400, justify="left",
                         anchor="w").grid(row=2, column=1, columnspan=2,
                                         sticky="ew",
                                         padx=(16, 24), pady=(0, 10))
 
             # Observación — row=3, columnspan=2
             if step.get("observation"):
-                obs = tk.Frame(row, bg=row_bg)
-                obs.grid(row=3, column=1, columnspan=2,
-                        sticky="ew", padx=(16, 24), pady=(0, 10))
-                tk.Label(obs, text=step["observation"],
-                        bg=row_bg, fg=t.gray,
-                        font=t.fonts["small"],
-                        anchor="w").pack(side="left")
+                tk.Label(
+                    row,
+                    text=step["observation"],
+                    bg=row_bg,
+                    fg=t.gray,
+                    font=t.fonts["small"],
+                    justify="left",
+                    anchor="w",
+                ).grid(
+                    row=3,
+                    column=1,
+                    columnspan=2,
+                    sticky="ew",
+                    padx=(16, 24),
+                    pady=(0, 10),
+    )
 
             # rowspan del número ajustado a 4
             num.grid(row=0, column=0, rowspan=4, sticky="ns",
