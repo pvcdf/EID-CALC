@@ -160,21 +160,6 @@ class ConicView(Frame):
         )
         self._mostrar_respuesta_btn.pack(side="left", fill="both", expand=True)
 
-        tk.Button(
-            self.right,
-            text="Mostrar elementos",
-            bg=t.panel, fg=t.gray,
-            font=t.fonts["small"],
-            bd=0, cursor="hand2",
-            padx=10, pady=5,
-            relief="flat",
-            highlightbackground=t.border,
-            highlightthickness=1,
-            activebackground=t.card,
-            activeforeground=t.fg,
-            command=self._reveal_elements,
-        ).pack(fill="x", pady=(6, 0))
-
         # Tab switcher General↔Canónica
         self._build_tab_switcher(self.right)
 
@@ -365,59 +350,6 @@ class ConicView(Frame):
         return steps
 
 
-    def _reveal_elements(self):
-        """Rellena los Entry de elementos con los valores calculados."""
-        if not self.pipeline.get("valid"):
-            return
-        td = self.pipeline["transform"]["data"]
-        ct = self._conic_type
-
-        def fmt(n):
-            return str(round(n, 2))
-
-        def fmt_coord(pair):
-            return f"({round(pair[0],2)}, {round(pair[1],2)})"
-
-        values = {}
-        if ct == "circle":
-            values = {
-                "centro": fmt_coord(td["center"]),
-                "radio":  fmt(td["radius"]),
-            }
-        elif ct == "ellipse":
-            values = {
-                "centro":      fmt_coord(td["center"]),
-                "a":           fmt(td["a"]),
-                "b":           fmt(td["b"]),
-                "c":           fmt(td["c"]),
-                "orientacion": "horizontal" if td["a2"] > td["b2"] else "vertical",
-            }
-        elif ct == "hyperbola":
-            values = {
-                "centro":      fmt_coord(td["center"]),
-                "a":           fmt(td["a"]),
-                "b":           fmt(td["b"]),
-                "c":           fmt(td["c"]),
-                "orientacion": td.get("orientation", "—"),
-            }
-        elif ct == "parabola":
-            values = {
-                "vertice":     fmt_coord(td["vertex"]),
-                "p":           fmt(td["p"]),
-                "orientacion": td.get("orientation", "—"),
-                "directriz": (
-                    fmt(td["vertex"][1] - td["p"])
-                    if td.get("orientation") == "vertical"
-                    else fmt(td["vertex"][0] - td["p"])
-                ),
-            }
-
-        for key, entry in self._element_entries.items():
-            if key in values:
-                entry.delete(0, "end")
-                entry.insert(0, values[key])
-
-
     def load_data(self, rut_result: dict):
         if self.pipeline and self.pipeline.get("valid"):
             # No renderizar la cónica aquí - esperar a que el usuario presione botones
@@ -498,8 +430,6 @@ class ConicView(Frame):
                 justify="center",
             )
 
-    # ── Métodos para elementos editables ──────────────────────────────────
-
     def _parse_coordinate(self, text):
         """Parsea texto como 'x,y' o '(x,y)' y retorna tupla (x, y) o None si es inválido."""
         if not text or not text.strip():
@@ -518,90 +448,111 @@ class ConicView(Frame):
         except (ValueError, AttributeError):
             return None
 
-    def _on_element_changed(self, clave):
-        """Callback cuando cambia el valor de un elemento (en tiempo real)."""
-        # Mapear claves a variables
-        var_map = {
-            "centro": self.centro_var,
-            "foco": self.foco_var,
-            "vértice": self.vertice_var,
-        }
-        
-        # Construir dict con elementos válidos
-        elementos = {}
-        
-        for key, var in var_map.items():
-            coord = self._parse_coordinate(var.get())
-            if coord:
-                # Mapear claves canónicas
-                if key == "centro":
-                    elementos["Centro"] = coord
-                elif key == "foco":
-                    elementos["Foco"] = coord
-                elif key == "vértice":
-                    elementos["Vértice"] = coord
-        
-        # Dibujar en tiempo real si hay elementos válidos
-        if elementos and self._plotter and self._active_transform:
-            self._plotter.draw_user_elements(elementos, self._active_transform)
-        else:
-            # Limpiar si no hay elementos válidos o no está listo
-            if self._plotter:
-                self._plotter.clear_user_elements()
-
     def _actualizar_grafico(self):
-        """Actualiza el gráfico con los valores ingresados en los campos de entrada."""
-        if not self._active_transform:
+        """Actualiza el gráfico con los valores ingresados en los inputs."""
+        if not self.pipeline or not self.pipeline.get("valid"):
             return
         
-        # Construir dict con elementos válidos del usuario desde los campos de la derecha
+        # Limpiar canvas
+        canvas = self.graph_panel.canvas
+        canvas.delete("all")
+        self.graph_panel.clear_placeholder()
+        
+        # Forzar que el canvas tenga dimensiones reales
+        canvas.update_idletasks()
+        if canvas.winfo_width() < 10:
+            self.after(100, self._actualizar_grafico)
+            return
+        
+        ct = self._conic_type
+        
+        # Leer los valores de los inputs
         elementos = {}
         
-        # Leer valores de los campos (Centro, Vértice como coordenadas)
         for key, entry in self._element_entries.items():
             value = entry.get().strip()
             if not value:
                 continue
             
-            # Si es una coordenada (centro o vértice)
-            if key in ["centro", "vertice"]:
-                coord = self._parse_coordinate(value)
-                if coord:
-                    display_key = "Centro" if key == "centro" else "Vértice"
-                    elementos[display_key] = coord
+            try:
+                # Si es una coordenada (centro o vértice)
+                if key in ["centro", "vertice"]:
+                    coord = self._parse_coordinate(value)
+                    if coord:
+                        display_key = "Centro" if key == "centro" else "Vértice"
+                        elementos[display_key] = coord
+            except Exception:
+                pass
         
-        # Solo dibujar si hay elementos válidos
+        # Si no hay elementos válidos, mostrar mensaje
         if not elementos:
+            canvas.create_text(
+                canvas.winfo_width() // 2,
+                canvas.winfo_height() // 2,
+                text="Ingresa valores de forma correcta en los campos de entrada",
+                fill=self.theme.gray,
+                font=self.theme.fonts["small"],
+                justify="center",
+            )
             return
         
-        # Crear plotter si no existe
-        if not self._plotter:
-            canvas = self.graph_panel.canvas
-            canvas.delete("all")
-            self.graph_panel.clear_placeholder()
-            self._plotter = ConicPlotter(canvas, self.theme)
-        
-        # Limpiar puntos anteriores y redibujar con los nuevos elementos
-        self._plotter.clear_user_elements()
-        self._plotter.draw_user_elements(elementos, self._active_transform)
+        # Crear transform para el canvas
+        td = self.pipeline["transform"]["data"]
+        try:
+            # Obtener límites según el tipo de cónica
+            if ct == "circle":
+                r = td.get("radius", 1)
+                h, k = td.get("center", (0, 0))
+                margin = 1
+                x_min, x_max = h - r - margin, h + r + margin
+                y_min, y_max = k - r - margin, k + r + margin
+            elif ct in ["ellipse", "hyperbola"]:
+                a = td.get("a", 1)
+                b = td.get("b", 1)
+                h, k = td.get("center", (0, 0))
+                margin = 2
+                x_min, x_max = h - a - margin, h + a + margin
+                y_min, y_max = k - b - margin, k + b + margin
+            elif ct == "parabola":
+                p = td.get("p", 1)
+                h, k = td.get("vertex", (0, 0))
+                margin = 2
+                x_min, x_max = h - 4*abs(p) - margin, h + 4*abs(p) + margin
+                y_min, y_max = k - 2*abs(p) - margin, k + 4*abs(p) + margin
+            else:
+                return
+            
+            from graphics.canvas_utils import CoordinateTransform, GridDrawer
+            transform = CoordinateTransform(
+                canvas.winfo_width(), canvas.winfo_height(),
+                x_min, x_max, y_min, y_max
+            )
+            
+            # Dibujar grilla y ejes
+            GridDrawer.draw_grid(canvas, transform, grid_spacing=1, 
+                                grid_color=self.theme.border, 
+                                axis_color=self.theme.gray)
+            GridDrawer.draw_axis_labels(canvas, transform, self.theme, spacing=1)
+            
+            # Dibujar los elementos ingresados por el usuario
+            plotter = ConicPlotter(canvas, self.theme)
+            plotter.draw_user_elements(elementos, transform)
+            
+        except Exception as e:
+            print(f"Error al actualizar gráfico: {e}")
 
     def _mostrar_respuesta(self):
-        """Rellena los campos con los elementos correctos y dibuja la cónica correcta."""
+        """Rellena los campos con los elementos correctos y dibuja la cónica completa."""
         if not self.pipeline or not self.pipeline.get("valid"):
             return
         
-        if not self._active_transform:
-            return
-        
-        # Crear plotter si no existe
+        # Limpiar canvas
         canvas = self.graph_panel.canvas
-        if not self._plotter:
-            canvas.delete("all")
-            self.graph_panel.clear_placeholder()
-            self._plotter = ConicPlotter(canvas, self.theme)
+        canvas.delete("all")
+        self.graph_panel.clear_placeholder()
         
-        # Renderizar la cónica correcta
-        self._render_conic()
+        # Renderizar la cónica completa con todos sus elementos
+        self._render_graph()
         
         # Rellenar campos con valores correctos
         td = self.pipeline["transform"]["data"]
@@ -630,6 +581,8 @@ class ConicView(Frame):
                     entry.insert(0, fmt(td["a"]))
                 elif key == "b":
                     entry.insert(0, fmt(td["b"]))
+                elif key == "c":
+                    entry.insert(0, fmt(td["c"]))
                 elif key == "orientacion":
                     entry.insert(0, "horizontal" if td["a2"] > td["b2"] else "vertical")
             
@@ -640,6 +593,8 @@ class ConicView(Frame):
                     entry.insert(0, fmt(td["a"]))
                 elif key == "b":
                     entry.insert(0, fmt(td["b"]))
+                elif key == "c":
+                    entry.insert(0, fmt(td["c"]))
                 elif key == "orientacion":
                     entry.insert(0, td.get("orientation", "—"))
             
@@ -650,61 +605,6 @@ class ConicView(Frame):
                     entry.insert(0, fmt(td["p"]))
                 elif key == "orientacion":
                     entry.insert(0, td.get("orientation", "—"))
-        
-        # Dibujar puntos correctos también
-        elementos_correctos = {}
-        if "Center" in self._correct_elements:
-            elementos_correctos["Centro"] = self._correct_elements["Center"]
-        if "Vertex" in self._correct_elements:
-            elementos_correctos["Vértice"] = self._correct_elements["Vertex"]
-        
-        if elementos_correctos:
-            self._plotter.draw_user_elements(elementos_correctos, self._active_transform)
-
-    def _render_conic(self):
-        """Renderiza la cónica correcta del core."""
-        if not self.pipeline or not self.pipeline.get("valid") or not self._plotter:
-            return
-        
-        td = self.pipeline["transform"]["data"]
-        ct = self._conic_type
-        
-        try:
-            if ct == "circle":
-                self._plotter.plot_circle(
-                    radius=td["radius"],
-                    h=td["center"][0],
-                    k=td["center"][1],
-                )
-            
-            elif ct == "ellipse":
-                if td["a2"] >= td["b2"]:
-                    self._plotter.plot_ellipse(
-                        a=td["a"], b=td["b"],
-                        h=td["center"][0], k=td["center"][1],
-                    )
-                else:
-                    self._plotter.plot_ellipse(
-                        a=td["b"], b=td["a"],
-                        h=td["center"][0], k=td["center"][1],
-                    )
-            
-            elif ct == "hyperbola":
-                self._plotter.plot_hyperbola(
-                    a=td["a"], b=td["b"],
-                    h=td["center"][0], k=td["center"][1],
-                    orientation=td.get("orientation", "horizontal"),
-                )
-            
-            elif ct == "parabola":
-                self._plotter.plot_parabola(
-                    p=td["p"],
-                    h=td["vertex"][0],
-                    k=td["vertex"][1],
-                    orientation=td.get("orientation", "vertical"),
-                )
-        except Exception as e:
-            print(f"Error al renderizar cónica: {e}")
 
     def _update_mostrar_respuesta_btn(self):
         """Actualiza el estado del botón 'Mostrar respuesta' según los datos disponibles."""
