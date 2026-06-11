@@ -47,7 +47,14 @@ class ConicPlotter:
 
     def plot_ellipse(self, a, b, h, k, rotation=0):
         """
-        Grafica una elipse en forma canónica.
+        Grafica una elipse en forma canónica (x-h)²/a² + (y-k)²/b² = 1.
+
+        Args:
+            a: Semi-eje mayor (o semieje en dirección X)
+            b: Semi-eje menor (o semieje en dirección Y)
+            h: Traslación horizontal del centro
+            k: Traslación vertical del centro
+            rotation: Ángulo de rotación en grados (futuro)
         """
         margin = 2
         transform = CoordinateTransform(

@@ -11,7 +11,10 @@ class CoordinateTransform:
     """Gestiona la transformación entre coordenadas matemáticas y canvas."""
 
     def __init__(self, canvas_width, canvas_height, math_xmin, math_xmax, math_ymin, math_ymax):
+        """
+        Inicializa el transformador de coordenadas.
 
+        """
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
         self.math_xmin = math_xmin
@@ -94,11 +97,6 @@ class GridDrawer:
         """
         Dibuja etiquetas en los ejes.
 
-        Args:
-            canvas: Canvas de tkinter
-            transform: Instancia de CoordinateTransform
-            theme: Objeto de tema con fuentes y colores
-            spacing: Espaciado entre etiquetas
         """
         origin_x, origin_y = transform.math_to_canvas(0, 0)
 
@@ -135,6 +133,7 @@ class ShapeDrawer:
     def draw_point(canvas, transform, x_math, y_math, color, size=4, label=None, theme=None):
         """
         Dibuja un punto en coordenadas matemáticas.
+
         """
         x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
         canvas.create_oval(

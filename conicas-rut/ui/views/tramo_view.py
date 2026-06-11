@@ -39,63 +39,62 @@ class TramoView(Frame):
     # ── Columna izquierda ─────────────────────────────────────────────────
 
     def _build_left(self):
-        t = self.theme
-        self.left = PanelFrame(self, t, padx=12, pady=12)
-        self.left.grid(row=0, column=0, sticky="nsew")
+            t = self.theme
+            self.left = PanelFrame(self, t, padx=12, pady=12)
+            self.left.grid(row=0, column=0, sticky="nsew")
 
-        SectionHeader(self.left, "Función por tramos", t).pack(fill="x")
+            SectionHeader(self.left, "Función por tramos", t).pack(fill="x")
 
-        # Punto crítico
-        info_card = CardFrame(self.left, t, padx=12, pady=10)
-        info_card.pack(fill="x", pady=(10, 0))
-        for i, (name, attr) in enumerate([("a", "_a_val"), ("Tipo", "_tipo_val")]):
-            info_card.columnconfigure(i, weight=1)
+            # Punto crítico (Modificado: Solo mostramos 'a' para evitar redundancia)
+            info_card = CardFrame(self.left, t, padx=12, pady=10)
+            info_card.pack(fill="x", pady=(10, 0))
+            
             col = Frame(info_card, bg=t.card)
-            col.grid(row=0, column=i, sticky="ew", padx=(0, 8) if i == 0 else 0)
-            Label(col, text=name, bg=t.card, fg=t.gray,
-                  font=t.fonts["mono_sm"], anchor="center").pack(fill="x")
-            lbl = Label(col, text="—", bg=t.card, fg=t.accent2,
-                        font=t.fonts["mono"], anchor="center")
-            lbl.pack(fill="x")
-            setattr(self, attr, lbl)
+            col.pack(fill="x")
+            Label(col, text="Punto Crítico (a)", bg=t.card, fg=t.gray,
+                font=t.fonts["mono_sm"], anchor="center").pack(fill="x")
+            self._a_val = Label(col, text="—", bg=t.card, fg=t.accent2,
+                                font=t.fonts["mono"], anchor="center")
+            self._a_val.pack(fill="x")
 
-        # Expresión de la función
-        expr_card = CardFrame(self.left, t, padx=12, pady=10)
-        expr_card.pack(fill="x", pady=(10, 0))
-        Label(expr_card, text="Definición", bg=t.card, fg=t.gray,
-              font=t.fonts["small"]).pack(anchor="w")
-        self._expr_f1 = Label(expr_card, text="—", bg=t.card, fg=t.fg,
-                               font=t.fonts["mono_sm"], anchor="w")
-        self._expr_f1.pack(anchor="w", pady=(4, 0))
-        self._expr_f2 = Label(expr_card, text="", bg=t.card, fg=t.gray,
-                               font=t.fonts["mono_sm"], anchor="w")
-        self._expr_f2.pack(anchor="w")
+            # Expresión de la función
+            expr_card = CardFrame(self.left, t, padx=12, pady=10)
+            expr_card.pack(fill="x", pady=(10, 0))
+            Label(expr_card, text="Definición", bg=t.card, fg=t.gray,
+                font=t.fonts["small"]).pack(anchor="w")
+            self._expr_f1 = Label(expr_card, text="—", bg=t.card, fg=t.fg,
+                                font=t.fonts["mono_sm"], anchor="w")
+            self._expr_f1.pack(anchor="w", pady=(4, 0))
+            self._expr_f2 = Label(expr_card, text="", bg=t.card, fg=t.gray,
+                                font=t.fonts["mono_sm"], anchor="w")
+            self._expr_f2.pack(anchor="w")
 
-        # Tipo de discontinuidad destacado
-        cls_card = CardFrame(self.left, t, padx=12, pady=10)
-        cls_card.pack(fill="x", pady=(10, 0))
-        Label(cls_card, text="Clasificación", bg=t.card, fg=t.gray,
-              font=t.fonts["small"]).pack(anchor="w")
-        self._cls_label = Label(cls_card, text="—", bg=t.card,
-                                 fg=t.accent, font=t.fonts["head"])
-        self._cls_label.pack(anchor="w", pady=(4, 0))
+            # Regla aplicada
+            SectionHeader(self.left, "Regla aplicada", t).pack(
+                fill="x", pady=(16, 0))
+            rule_card = CardFrame(self.left, t, padx=12, pady=10)
+            rule_card.pack(fill="x", pady=(6, 0))
+            self._rule_label = Label(
+                rule_card, text="—", bg=t.card, fg=t.gray,
+                font=t.fonts["small"], wraplength=210, justify="left", anchor="w")
+            self._rule_label.pack(fill="x")
 
-        # Regla aplicada
-        SectionHeader(self.left, "Regla aplicada", t).pack(
-            fill="x", pady=(16, 0))
-        rule_card = CardFrame(self.left, t, padx=12, pady=10)
-        rule_card.pack(fill="x", pady=(6, 0))
-        self._rule_label = Label(
-            rule_card, text="—", bg=t.card, fg=t.gray,
-            font=t.fonts["small"], wraplength=1, justify="left", anchor="w")
-        self._rule_label.pack(fill="x")
-        self._rule_label.bind("<Configure>", lambda e: self._rule_label.configure(wraplength=e.width - 4))
+            # Regla aplicada
+            SectionHeader(self.left, "Regla aplicada", t).pack(
+                fill="x", pady=(16, 0))
+            rule_card = CardFrame(self.left, t, padx=12, pady=10)
+            rule_card.pack(fill="x", pady=(6, 0))
+            self._rule_label = Label(
+                rule_card, text="—", bg=t.card, fg=t.gray,
+                font=t.fonts["small"], wraplength=1, justify="left", anchor="w")
+            self._rule_label.pack(fill="x")
+            self._rule_label.bind("<Configure>", lambda e: self._rule_label.configure(wraplength=e.width - 4))
 
-        # Pasos
-        SectionHeader(self.left, "Pasos — Generación", t).pack(
-            fill="x", pady=(16, 0))
-        self.step_container = StepContainer(self.left, t)
-        self.step_container.pack(fill="both", expand=True, pady=(6, 0))
+            # Pasos
+            SectionHeader(self.left, "Pasos — Generación", t).pack(
+                fill="x", pady=(16, 0))
+            self.step_container = StepContainer(self.left, t)
+            self.step_container.pack(fill="both", expand=True, pady=(6, 0))
 
     # ── Columna centro ──────────────────────────────────────────
 
@@ -113,83 +112,106 @@ class TramoView(Frame):
     # ── Columna derecha ───────────────────────────
 
     def _build_right(self):
-        t = self.theme
-        self.right = PanelFrame(self, t, padx=12, pady=12)
-        self.right.grid(row=0, column=2, sticky="nsew")
+            t = self.theme
+            self.right = PanelFrame(self, t, padx=0, pady=0) # Quitamos el padding aquí
+            self.right.grid(row=0, column=2, sticky="nsew")
+            self.right.rowconfigure(0, weight=1)
+            self.right.columnconfigure(0, weight=1)
 
-        # ── Tabla de valores ──────────────────────────────────────────────
-        SectionHeader(self.right, "Tabla de valores", t).pack(fill="x")
+            # 1. Crear sistema de scroll
+            canvas = tk.Canvas(self.right, bg=t.panel, highlightthickness=0, bd=0)
+            scrollbar = tk.Scrollbar(self.right, orient="vertical", command=canvas.yview)
+            
+            # 2. Contenedor interno que tendrá los elementos
+            self.right_content = tk.Frame(canvas, bg=t.panel, padx=12, pady=12)
+            
+            canvas.grid(row=0, column=0, sticky="nsew")
+            scrollbar.grid(row=0, column=1, sticky="ns")
+            canvas.configure(yscrollcommand=scrollbar.set)
+            
+            win_id = canvas.create_window((0, 0), window=self.right_content, anchor="nw")
+            
+            self.right_content.bind("<Configure>", 
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+            canvas.bind("<Configure>", 
+                lambda e: canvas.itemconfigure(win_id, width=e.width))
 
-        tbl_card = CardFrame(self.right, t, padx=8, pady=6)
-        tbl_card.pack(fill="x", pady=(8, 0))
-        tbl_card.columnconfigure(0, weight=1)
-        tbl_card.columnconfigure(1, weight=1)
-        tbl_card.columnconfigure(2, weight=1, minsize=100)
+            tbl_card = CardFrame(self.right, t, padx=8, pady=6)
+            tbl_card.pack(fill="x", pady=(8, 0))
+            tbl_card.columnconfigure(0, weight=1)
+            tbl_card.columnconfigure(1, weight=1)
+            tbl_card.columnconfigure(2, weight=1, minsize=100)
 
-        # Encabezado fijo
-        for col_i, txt in enumerate(["x", "f(x)", "Lado"]):
-            Label(tbl_card, text=txt, bg=t.card, fg=t.gray,
-                font=t.fonts["mono_sm"], anchor="center").grid(
-                row=0, column=col_i, sticky="ew", padx=4, pady=(0, 4))
+            # Encabezado fijo
+            for col_i, txt in enumerate(["x", "f(x)", "Lado"]):
+                Label(tbl_card, text=txt, bg=t.card, fg=t.gray,
+                    font=t.fonts["mono_sm"], anchor="center").grid(
+                    row=0, column=col_i, sticky="ew", padx=4, pady=(0, 4))
 
-        Frame(tbl_card, bg=t.border, height=1).grid(
-            row=1, column=0, columnspan=3, sticky="ew")
+            Frame(tbl_card, bg=t.border, height=1).grid(
+                row=1, column=0, columnspan=3, sticky="ew")
 
-        self._table_body = tbl_card  # el body ES la misma card
-        self._table_body_start_row = 2  # las filas de datos empiezan en row=2
+            self._table_body = tbl_card 
+            self._table_body_start_row = 2  
 
-        # ── Análisis de límites───────────────────────────
-        SectionHeader(self.right, "Análisis de límites", t).pack(
-            fill="x", pady=(14, 0))
+            Frame(tbl_card, bg=t.border, height=1).pack(fill="x")
+            self._table_body = Frame(tbl_card, bg=t.card)
+            self._table_body.pack(fill="x")
 
-        self._entries = {}
-        self._add_field("Límite izquierdo   lím(x→a⁻)", "lim_izq")
-        self._add_field("Límite derecho     lím(x→a⁺)", "lim_der")
-        self._add_field("Conclusión — existencia del límite", "concl_limite")
-        self._add_field("Valor  f(a)", "f_a")
+            # ── Análisis de límites───────────────────────────
+            SectionHeader(self.right_content, "Análisis de límites", t).pack(
+                fill="x", pady=(14, 0))
 
-        SectionHeader(self.right, "Continuidad", t).pack(
-            fill="x", pady=(12, 0))
+            self._entries = {}
+            self._add_field("Límite izquierdo   lím(x→a⁻)", "lim_izq")
+            self._add_field("Límite derecho     lím(x→a⁺)", "lim_der")
+            self._add_field("Conclusión — existencia del límite", "concl_limite")
+            self._add_field("Valor  f(a)", "f_a")
 
-        self._add_field("Conclusión — continuidad en x = a", "concl_cont")
-        self._add_field("Tipo de discontinuidad", "tipo_disc")
-        self._add_field("Justificación escrita", "justif", tall=True)
+            SectionHeader(self.right_content, "Continuidad", t).pack(
+                fill="x", pady=(12, 0))
 
-        # Botón revelar
-        tk.Button(
-            self.right,
-            text="Verificar respuestas",
-            bg=t.panel, fg=t.gray,
-            font=t.fonts["small"],
-            bd=0, cursor="hand2",
-            padx=10, pady=6,
-            relief="flat",
-            highlightbackground=t.border,
-            highlightthickness=1,
-            activebackground=t.card,
-            activeforeground=t.fg,
-            command=self._reveal_answers,
-        ).pack(fill="x", pady=(10, 0))
+            self._add_field("Conclusión — continuidad en x = a", "concl_cont")
+            self._add_field("Tipo de discontinuidad", "tipo_disc")
+            self._add_field("Justificación escrita", "justif", tall=True)
+
+            # Botón revelar
+            tk.Button(
+                self.right_content, # ¡Cambiamos el padre del botón a right_content!
+                text="Verificar respuestas",
+                bg=t.panel, fg=t.gray,
+                font=t.fonts["small"],
+                bd=0, cursor="hand2",
+                padx=10, pady=6,
+                relief="flat",
+                highlightbackground=t.border,
+                highlightthickness=1,
+                activebackground=t.card,
+                activeforeground=t.fg,
+                command=self._reveal_answers,
+            ).pack(fill="x", pady=(10, 0))
 
     def _add_field(self, label_text, key, tall=False):
-        """Añade un campo Entry vacío con su label encima."""
-        t = self.theme
-        card = CardFrame(self.right, t, padx=10, pady=8)
-        card.pack(fill="x", pady=(5, 0))
-        Label(card, text=label_text, bg=t.card, fg=t.gray,
-              font=t.fonts["small"], anchor="w").pack(anchor="w")
-        entry = Entry(
-            card,
-            bg=t.panel, fg=t.fg,
-            insertbackground=t.fg,
-            font=t.fonts["mono_sm"],
-            bd=0, relief="flat",
-            highlightbackground=t.border,
-            highlightthickness=1,
-            state="normal",
-        )
-        entry.pack(fill="x", ipady=7 if tall else 4, pady=(3, 0))
-        self._entries[key] = entry
+            """Añade un campo Entry vacío con su label encima."""
+            t = self.theme
+            
+            card = CardFrame(self.right_content, t, padx=10, pady=8)
+            card.pack(fill="x", pady=(5, 0))
+            
+            Label(card, text=label_text, bg=t.card, fg=t.gray,
+                font=t.fonts["small"], anchor="w").pack(anchor="w")
+            entry = Entry(
+                card,
+                bg=t.panel, fg=t.fg,
+                insertbackground=t.fg,
+                font=t.fonts["mono_sm"],
+                bd=0, relief="flat",
+                highlightbackground=t.border,
+                highlightthickness=1,
+                state="normal",
+            )
+            entry.pack(fill="x", ipady=7 if tall else 4, pady=(3, 0))
+            self._entries[key] = entry
 
     def load_data(self, rut_result: dict):
         rut_data = rut_result["data"]
@@ -207,30 +229,23 @@ class TramoView(Frame):
     # ── Poblar columna izquierda ──────────────────────────────────────────
 
     def _populate_left(self):
-        d = self._datos
-        tipo_map = {
-            "removible": "Removible",
-            "salto":     "Salto",
-            "infinita":  "Infinita",
-        }
-        self._a_val.config(text=str(d["a"]))
-        self._tipo_val.config(text=tipo_map.get(d["tipo_discontinuidad"], "—"))
-        self._cls_label.config(
-            text="Discontinuidad " + tipo_map.get(d["tipo_discontinuidad"], "—"))
+            d = self._datos
+            
+            # Poblamos exclusivamente el punto crítico 'a'
+            self._a_val.config(text=str(d["a"]))
 
-        # Expresión: dos líneas si f1 ≠ f2
-        if d["expr_f1"] != d["expr_f2"]:
-            self._expr_f1.config(text=f"f(x) = {d['expr_f1']}")
-            self._expr_f2.config(text=f"       {d['expr_f2']}")
-        else:
-            self._expr_f1.config(text=f"f(x) = {d['expr_f1']}")
-            self._expr_f2.config(text="")
+            if d["expr_f1"] != d["expr_f2"]:
+                self._expr_f1.config(text=f"f(x) = {d['expr_f1']}")
+                self._expr_f2.config(text=f"       {d['expr_f2']}")
+            else:
+                self._expr_f1.config(text=f"f(x) = {d['expr_f1']}")
+                self._expr_f2.config(text="")
 
-        texto = d["explicacion"]
-        oraciones = [s.strip() for s in re.split(r'[.;]+', texto) if s.strip()]
-        texto_lista = "\n• " + "\n• ".join(oraciones)
-        self._rule_label.config(text=texto_lista)
-
+            texto = d["explicacion"]
+            oraciones = [s.strip() for s in re.split(r'[.;]+', texto) if s.strip()]
+            texto_lista = "\n• " + "\n• ".join(oraciones)
+            self._rule_label.config(text=texto_lista)
+            self._rule_label.config(text=d["explicacion"])
     # ── Poblar pasos ──────────────────────────────────────────────────────
 
     def _populate_steps(self):
