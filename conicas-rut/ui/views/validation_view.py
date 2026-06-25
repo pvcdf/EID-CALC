@@ -150,7 +150,15 @@ class ValidationView(tk.Frame):
     def _render_steps(self, parent, steps_data, scroll_fn):
         t = self.theme
 
-        for i, step in enumerate(steps_data):
+        for i, raw_step in enumerate(steps_data):
+            if isinstance(raw_step, dict):
+                step = raw_step
+            else:
+                step = {
+                    "title": f"Paso {i + 1}",
+                    "explanation": str(raw_step),
+                }
+
             row_bg = t.card if i % 2 == 0 else t.panel
 
             row = tk.Frame(parent, bg=row_bg)
@@ -159,45 +167,67 @@ class ValidationView(tk.Frame):
             row.columnconfigure(1, weight=0, minsize=260)
             row.columnconfigure(2, weight=1)
 
-            # Número
             num = tk.Frame(row, bg=row_bg, width=44)
-            num.grid(row=0, column=0, rowspan=3, sticky="ns",
-                     padx=(12, 0), pady=8)
+            num.grid(row=0, column=0, rowspan=4, sticky="ns", padx=(12, 0), pady=8)
             num.pack_propagate(False)
-            tk.Label(num, text=f"{i+1:02d}", bg=row_bg, fg=t.border,
-                     font=t.fonts["mono_sm"]).pack(anchor="n", pady=(4, 0))
 
-            # Separador vertical
+            tk.Label(
+                num,
+                text=f"{i + 1:02d}",
+                bg=row_bg,
+                fg=t.border,
+                font=t.fonts["mono_sm"],
+            ).pack(anchor="n", pady=(4, 0))
+
             tk.Frame(row, bg=t.border, width=1).grid(
-                row=0, column=0, rowspan=3, sticky="nse", pady=8)
+                row=0,
+                column=0,
+                rowspan=4,
+                sticky="nse",
+                pady=8,
+            )
 
-            # Título — row=0, col=1
-            tk.Label(row, text=step.get("title", ""),
-                    bg=row_bg, fg=t.accent,
-                    font=t.fonts["label"],
-                    anchor="w").grid(row=0, column=1, sticky="ew",
-                                    padx=(16, 8), pady=(10, 2))
+            tk.Label(
+                row,
+                text=step.get("title", ""),
+                bg=row_bg,
+                fg=t.accent,
+                font=t.fonts["label"],
+                anchor="w",
+            ).grid(
+                row=0,
+                column=1,
+                sticky="ew",
+                padx=(16, 8),
+                pady=(10, 2),
+            )
 
-            # Ecuación — row=0, col=2 (mismo row que título)
             if step.get("equation"):
                 eq = tk.Frame(row, bg=row_bg)
-                eq.grid(row=0, column=2, sticky="w",
-                        padx=(8, 24), pady=(10, 2))
-                tk.Label(eq, text=step["equation"],
-                        bg=row_bg, fg=t.accent2,
-                        font=t.fonts["mono"],
-                        anchor="w").pack(side="left")
+                eq.grid(row=0, column=2, sticky="w", padx=(8, 24), pady=(10, 2))
 
-            # Resultado — row=1, col=2
-            if step.get("result"):
+                tk.Label(
+                    eq,
+                    text=step["equation"],
+                    bg=row_bg,
+                    fg=t.accent2,
+                    font=t.fonts["mono"],
+                    anchor="w",
+                    justify="left",
+                    wraplength=760,
+                ).pack(side="left")
+
+            result = step.get("result")
+            if result is not None and result != "":
                 tk.Label(
                     row,
-                    text=step["result"],
+                    text=str(result),
                     bg=row_bg,
                     fg=t.green,
                     font=t.fonts["label"],
                     anchor="w",
                     justify="left",
+                    wraplength=900,
                 ).grid(
                     row=1,
                     column=1,
@@ -207,17 +237,25 @@ class ValidationView(tk.Frame):
                     pady=(0, 2),
                 )
 
-            # Explanation — row=2, columnspan=2, SIEMPRE debajo de todo
             if step.get("explanation"):
-                tk.Label(row, text=step["explanation"],
-                        bg=row_bg, fg=t.gray,
-                        font=t.fonts["small"],
-                        wraplength=1400, justify="left",
-                        anchor="w").grid(row=2, column=1, columnspan=2,
-                                        sticky="ew",
-                                        padx=(16, 24), pady=(0, 10))
+                tk.Label(
+                    row,
+                    text=step["explanation"],
+                    bg=row_bg,
+                    fg=t.gray,
+                    font=t.fonts["small"],
+                    wraplength=1400,
+                    justify="left",
+                    anchor="w",
+                ).grid(
+                    row=2,
+                    column=1,
+                    columnspan=2,
+                    sticky="ew",
+                    padx=(16, 24),
+                    pady=(0, 10),
+                )
 
-            # Observación — row=3, columnspan=2
             if step.get("observation"):
                 tk.Label(
                     row,
@@ -225,6 +263,7 @@ class ValidationView(tk.Frame):
                     bg=row_bg,
                     fg=t.gray,
                     font=t.fonts["small"],
+                    wraplength=1400,
                     justify="left",
                     anchor="w",
                 ).grid(
@@ -234,14 +273,14 @@ class ValidationView(tk.Frame):
                     sticky="ew",
                     padx=(16, 24),
                     pady=(0, 10),
-    )
+                )
 
-            # rowspan del número ajustado a 4
-            num.grid(row=0, column=0, rowspan=4, sticky="ns",
-                    padx=(12, 0), pady=8)
-            tk.Frame(row, bg=t.border, width=1).grid(
-                row=0, column=0, rowspan=4, sticky="nse", pady=8)
-
-            # Propagar mousewheel a hijos
-            for widget in (*row.winfo_children(), row):
+            for widget in self._walk_widgets(row):
                 widget.bind("<MouseWheel>", scroll_fn)
+
+
+    def _walk_widgets(self, widget):
+        yield widget
+
+        for child in widget.winfo_children():
+            yield from self._walk_widgets(child)

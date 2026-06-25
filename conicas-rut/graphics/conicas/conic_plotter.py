@@ -40,24 +40,18 @@ class ConicPlotter:
             "shapes",
         )
 
-    def _draw_base(self, transform, spacing=1):
-        """
-        Dibuja grilla y ejes cartesianos.
-        """
+    def _draw_base(self, transform, spacing=None):
+        spacing = spacing or GridDrawer.auto_spacing(transform)
+        label_spacing = spacing * 2 if spacing < 10 else spacing
+
         GridDrawer.draw_grid(
-            self.canvas,
-            transform,
+            self.canvas, transform,
             grid_spacing=spacing,
             grid_color=self.theme.border,
             axis_color=self.theme.gray,
         )
 
-        GridDrawer.draw_axis_labels(
-            self.canvas,
-            transform,
-            self.theme,
-            spacing=spacing,
-        )
+        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=label_spacing)
 
     def _make_transform(self, x_min, x_max, y_min, y_max):
         """
@@ -124,7 +118,7 @@ class ConicPlotter:
             k + radius + margin,
         )
 
-        self._draw_base(transform, spacing=1)
+        self._draw_base(transform)
 
         num_points = 260
         previous = None
@@ -198,7 +192,7 @@ class ConicPlotter:
             k + y_radius + margin,
         )
 
-        self._draw_base(transform, spacing=1)
+        self._draw_base(transform)
 
         num_points = 260
         previous = None
@@ -260,7 +254,7 @@ class ConicPlotter:
             k + span_y + margin,
         )
 
-        self._draw_base(transform, spacing=1)
+        self._draw_base(transform)
 
         if orientation == "vertical":
             self._plot_hyperbola_vertical(transform, a, b, h, k)
@@ -367,7 +361,7 @@ class ConicPlotter:
             k + span,
         )
 
-        self._draw_base(transform, spacing=1)
+        self._draw_base(transform)
 
         if orientation == "horizontal":
             self._plot_parabola_horizontal(transform, p, h, k, span)

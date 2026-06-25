@@ -2,9 +2,10 @@
 
 
 class CoordinateTransform:
-    """Transforma coordenadas matemáticas a coordenadas de canvas y viceversa."""
+    """Transforma coordenadas matemáticas a canvas."""
 
-    def __init__(self, canvas_width, canvas_height, math_xmin, math_xmax, math_ymin, math_ymax):
+    def __init__(self, canvas_width, canvas_height, math_xmin, math_xmax,
+                 math_ymin, math_ymax, keep_aspect=True):
         self.canvas_width = max(int(canvas_width), 300)
         self.canvas_height = max(int(canvas_height), 220)
 
@@ -12,14 +13,35 @@ class CoordinateTransform:
         self.math_xmax = math_xmax if math_xmax != math_xmin else math_xmin + 1
         self.math_ymin = math_ymin
         self.math_ymax = math_ymax if math_ymax != math_ymin else math_ymin + 1
+        self.keep_aspect = keep_aspect
 
         self._calc_scale()
 
     def _calc_scale(self):
-        self.scale_x = self.canvas_width / (self.math_xmax - self.math_xmin)
-        self.scale_y = self.canvas_height / (self.math_ymax - self.math_ymin)
-        self.offset_x = -self.math_xmin * self.scale_x
-        self.offset_y = self.canvas_height + self.math_ymin * self.scale_y
+        math_width = self.math_xmax - self.math_xmin
+        math_height = self.math_ymax - self.math_ymin
+
+        raw_scale_x = self.canvas_width / math_width
+        raw_scale_y = self.canvas_height / math_height
+
+        if not self.keep_aspect:
+            self.scale_x = raw_scale_x
+            self.scale_y = raw_scale_y
+            self.offset_x = -self.math_xmin * self.scale_x
+            self.offset_y = self.canvas_height + self.math_ymin * self.scale_y
+            return
+
+        scale = raw_scale_x if raw_scale_x < raw_scale_y else raw_scale_y
+        self.scale_x = scale
+        self.scale_y = scale
+
+        used_width = math_width * scale
+        used_height = math_height * scale
+        pad_x = (self.canvas_width - used_width) / 2
+        pad_y = (self.canvas_height - used_height) / 2
+
+        self.offset_x = pad_x - self.math_xmin * scale
+        self.offset_y = pad_y + self.math_ymax * scale
 
     def math_to_canvas(self, x_math, y_math):
         x_canvas = x_math * self.scale_x + self.offset_x
@@ -30,7 +52,7 @@ class CoordinateTransform:
         x_math = (x_canvas - self.offset_x) / self.scale_x
         y_math = (self.offset_y - y_canvas) / self.scale_y
         return x_math, y_math
-
+    
 
 class GridDrawer:
     """Dibuja grilla cartesiana, ejes y etiquetas."""
@@ -86,6 +108,26 @@ class GridDrawer:
 
         canvas.create_text(origin_x - 8, origin_y + 12, text="0",
                            fill=theme.gray, font=theme.fonts["small"], tags="labels")
+        
+    @staticmethod
+    def auto_spacing(transform):
+        """Calcula separación de grilla según el rango visible."""
+        x_range = transform.math_xmax - transform.math_xmin
+        y_range = transform.math_ymax - transform.math_ymin
+        max_range = x_range if x_range > y_range else y_range
+
+        if max_range <= 12:
+            return 1
+        if max_range <= 25:
+            return 2
+        if max_range <= 60:
+            return 5
+        if max_range <= 120:
+            return 10
+        if max_range <= 250:
+            return 25
+
+        return 50
 
 
 class ShapeDrawer:

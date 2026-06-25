@@ -1,20 +1,15 @@
 # conicas-rut/graphics/conicas/conic_elements_plotter.py
 
 """
-Plotter de elementos geométricos de cónicas.
+Dibujo de elementos geométricos de cónicas.
 
-Este módulo se encarga solo de dibujar elementos:
-- centro
-- vértices
-- co-vértices
-- focos
-- ejes
-- directrices
-- asíntotas
-
+- centro o vértice;
+- radio de circunferencia;
+- vértices;
+- co-vértices;
+- foco y directriz de parábola.
 """
 
-from core.utils.manual_math import safe_div
 from graphics.utils.canvas_utils import ShapeDrawer
 
 
@@ -24,41 +19,24 @@ class ConicElementsPlotter:
         self.theme = theme
 
     def clear_elements(self):
-        """
-        Limpia solo los elementos geométricos, no la cónica completa.
-        """
-        self.canvas.delete(
-            "conic_elements",
-            "element_points",
-            "element_lines",
-            "element_labels",
-        )
+        self.canvas.delete("conic_elements", "element_points", "element_lines", "element_labels")
 
-    def plot_from_transform(self, conic_type: str, transform_data: dict, transform):
-        """
-        Dibuja los elementos geométricos calculados desde transform_data.
-        """
-        if not transform_data or not transform:
-            return
+    def plot_from_transform(self, conic_type: str, data: dict, transform):
+        self.clear_elements()
 
-        if transform_data.get("imaginary") or transform_data.get("degenerate"):
+        if not data or data.get("imaginary") or data.get("degenerate") or not transform:
             return
 
         if conic_type == "circle":
-            self._plot_circle_elements(transform_data, transform)
-
+            self._circle(data, transform)
         elif conic_type == "ellipse":
-            self._plot_ellipse_elements(transform_data, transform)
-
+            self._ellipse(data, transform)
         elif conic_type == "hyperbola":
-            self._plot_hyperbola_elements(transform_data, transform)
-
+            self._hyperbola(data, transform)
         elif conic_type == "parabola":
-            self._plot_parabola_elements(transform_data, transform)
+            self._parabola(data, transform)
 
-    # ── Circunferencia ─────────────────────────────────────────────────────
-
-    def _plot_circle_elements(self, data: dict, transform):
+    def _circle(self, data, transform):
         center = data.get("center")
         radius = data.get("radius")
 
@@ -66,145 +44,67 @@ class ConicElementsPlotter:
             return
 
         h, k = center
+        tags = ("conic_elements", "element_points")
+        line_tags = ("conic_elements", "element_lines")
 
-        ShapeDrawer.draw_point(
-            self.canvas,
-            transform,
-            h,
-            k,
-            self.theme.accent2,
-            size=4,
-            label="C",
-            theme=self.theme,
-            tags=("conic_elements", "element_points"),
-        )
+        ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2,
+                               label="C", theme=self.theme, tags=tags)
+        ShapeDrawer.draw_line_segment(self.canvas, transform, h, k, h + radius, k,
+                                      self.theme.gray, width=1, dash=(3, 3), tags=line_tags)
 
-        ShapeDrawer.draw_line_segment(
-            self.canvas,
-            transform,
-            h,
-            k,
-            h + radius,
-            k,
-            color=self.theme.gray,
-            width=1,
-            dash=(2, 2),
-            tags=("conic_elements", "element_lines"),
-        )
-
-        ShapeDrawer.draw_point(
-            self.canvas,
-            transform,
-            h + radius,
-            k,
-            self.theme.green,
-            size=3,
-            label="r",
-            theme=self.theme,
-            tags=("conic_elements", "element_points"),
-        )
-
-    # ── Elipse ─────────────────────────────────────────────────────────────
-
-    def _plot_ellipse_elements(self, data: dict, transform):
+    def _ellipse(self, data, transform):
         center = data.get("center")
         a = data.get("a")
         b = data.get("b")
-        c = data.get("c")
 
-        if center is None or a is None or b is None or c is None:
+        if center is None or a is None or b is None:
             return
 
         h, k = center
-        orientation = self._ellipse_orientation(data)
+        orientation = data.get("major_axis", "horizontal")
+        tags = ("conic_elements", "element_points")
 
-        if orientation == "horizontal":
-            vertices = [(h - a, k), (h + a, k)]
-            covertices = [(h, k - b), (h, k + b)]
-            foci = [(h - c, k), (h + c, k)]
-
-            self._draw_horizontal_axis(transform, k, self.theme.gray)
-            self._draw_vertical_axis(transform, h, self.theme.border)
-
+        if orientation == "vertical":
+            vertices = [(h, k - a, "V1"), (h, k + a, "V2")]
+            covertices = [(h - b, k, "CV1"), (h + b, k, "CV2")]
         else:
-            vertices = [(h, k - a), (h, k + a)]
-            covertices = [(h - b, k), (h + b, k)]
-            foci = [(h, k - c), (h, k + c)]
+            vertices = [(h - a, k, "V1"), (h + a, k, "V2")]
+            covertices = [(h, k - b, "CV1"), (h, k + b, "CV2")]
 
-            self._draw_vertical_axis(transform, h, self.theme.gray)
-            self._draw_horizontal_axis(transform, k, self.theme.border)
+        ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2,
+                               label="C", theme=self.theme, tags=tags)
 
-        self._draw_center(transform, h, k)
-        self._draw_point_pair(transform, vertices, "V", self.theme.green)
-        self._draw_point_pair(transform, covertices, "B", self.theme.accent2)
-        self._draw_point_pair(transform, foci, "F", self.theme.yellow)
+        for x, y, label in vertices:
+            ShapeDrawer.draw_point(self.canvas, transform, x, y, self.theme.green,
+                                   label=label, theme=self.theme, tags=tags)
 
-    def _ellipse_orientation(self, data: dict) -> str:
-        if data.get("major_axis"):
-            return data["major_axis"]
+        for x, y, label in covertices:
+            ShapeDrawer.draw_point(self.canvas, transform, x, y, self.theme.yellow,
+                                   label=label, theme=self.theme, tags=tags)
 
-        x_radius_squared = data.get("x_radius_squared", data.get("a2", 0))
-        y_radius_squared = data.get("y_radius_squared", data.get("b2", 0))
-
-        if x_radius_squared >= y_radius_squared:
-            return "horizontal"
-
-        return "vertical"
-
-    # ── Hipérbola ──────────────────────────────────────────────────────────
-
-    def _plot_hyperbola_elements(self, data: dict, transform):
+    def _hyperbola(self, data, transform):
         center = data.get("center")
         a = data.get("a")
-        b = data.get("b")
-        c = data.get("c")
 
-        if center is None or a is None or b is None or c is None:
+        if center is None or a is None:
             return
 
         h, k = center
         orientation = data.get("orientation", "horizontal")
+        tags = ("conic_elements", "element_points")
 
-        if orientation == "horizontal":
-            vertices = [(h - a, k), (h + a, k)]
-            foci = [(h - c, k), (h + c, k)]
-            slope = safe_div(b, a)
+        vertices = [(h, k - a, "V1"), (h, k + a, "V2")] if orientation == "vertical" else [
+            (h - a, k, "V1"), (h + a, k, "V2")
+        ]
 
-            self._draw_horizontal_axis(transform, k, self.theme.gray)
-            self._draw_vertical_axis(transform, h, self.theme.border)
+        ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2,
+                               label="C", theme=self.theme, tags=tags)
 
-        else:
-            vertices = [(h, k - a), (h, k + a)]
-            foci = [(h, k - c), (h, k + c)]
-            slope = safe_div(a, b)
+        for x, y, label in vertices:
+            ShapeDrawer.draw_point(self.canvas, transform, x, y, self.theme.green,
+                                   label=label, theme=self.theme, tags=tags)
 
-            self._draw_vertical_axis(transform, h, self.theme.gray)
-            self._draw_horizontal_axis(transform, k, self.theme.border)
-
-        ShapeDrawer.draw_oblique_asymptote(
-            self.canvas,
-            transform,
-            h,
-            k,
-            slope,
-            color=self.theme.red,
-        )
-        ShapeDrawer.draw_oblique_asymptote(
-            self.canvas,
-            transform,
-            h,
-            k,
-            -slope,
-            color=self.theme.red,
-        )
-
-        self._draw_center(transform, h, k)
-        self._draw_point_pair(transform, vertices, "V", self.theme.green)
-        self._draw_point_pair(transform, foci, "F", self.theme.yellow)
-
-    # ── Parábola ───────────────────────────────────────────────────────────
-
-    def _plot_parabola_elements(self, data: dict, transform):
+    def _parabola(self, data, transform):
         vertex = data.get("vertex")
         p = data.get("p")
 
@@ -213,155 +113,18 @@ class ConicElementsPlotter:
 
         h, k = vertex
         orientation = data.get("orientation", "vertical")
+        focus = data.get("focus", (h + p, k) if orientation == "horizontal" else (h, k + p))
+        tags = ("conic_elements", "element_points")
+        line_tags = ("conic_elements", "element_lines")
 
-        focus = data.get("focus")
-        axis = data.get("axis")
-        directrix = data.get("directrix")
+        ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2,
+                               label="V", theme=self.theme, tags=tags)
+        ShapeDrawer.draw_point(self.canvas, transform, focus[0], focus[1], self.theme.green,
+                               label="F", theme=self.theme, tags=tags)
 
-        if orientation == "vertical":
-            focus = focus or (h, k + p)
-
-            self._draw_vertical_axis(transform, h, self.theme.gray)
-            ShapeDrawer.draw_asymptote(
-                self.canvas,
-                transform,
-                y_math=k - p,
-                color=self.theme.yellow,
-            )
-
-            self._draw_line_label(
-                transform,
-                x_math=transform.math_xmin,
-                y_math=k - p,
-                text=directrix or f"y = {round(k - p, 2)}",
-                color=self.theme.yellow,
-            )
-
+        if orientation == "horizontal":
+            ShapeDrawer.draw_asymptote(self.canvas, transform, x_math=h - p,
+                                       color=self.theme.red, tags=line_tags)
         else:
-            focus = focus or (h + p, k)
-
-            self._draw_horizontal_axis(transform, k, self.theme.gray)
-            ShapeDrawer.draw_asymptote(
-                self.canvas,
-                transform,
-                x_math=h - p,
-                color=self.theme.yellow,
-            )
-
-            self._draw_line_label(
-                transform,
-                x_math=h - p,
-                y_math=transform.math_ymax,
-                text=directrix or f"x = {round(h - p, 2)}",
-                color=self.theme.yellow,
-            )
-
-        ShapeDrawer.draw_point(
-            self.canvas,
-            transform,
-            h,
-            k,
-            self.theme.green,
-            size=5,
-            label="V",
-            theme=self.theme,
-            tags=("conic_elements", "element_points"),
-        )
-
-        ShapeDrawer.draw_point(
-            self.canvas,
-            transform,
-            focus[0],
-            focus[1],
-            self.theme.yellow,
-            size=5,
-            label="F",
-            theme=self.theme,
-            tags=("conic_elements", "element_points"),
-        )
-
-        if axis:
-            self._draw_axis_label(transform, h, k, axis)
-
-    # ── Helpers de dibujo ──────────────────────────────────────────────────
-
-    def _draw_center(self, transform, h, k):
-        ShapeDrawer.draw_point(
-            self.canvas,
-            transform,
-            h,
-            k,
-            self.theme.accent2,
-            size=4,
-            label="C",
-            theme=self.theme,
-            tags=("conic_elements", "element_points"),
-        )
-
-    def _draw_point_pair(self, transform, points, prefix, color):
-        for index, point in enumerate(points, start=1):
-            ShapeDrawer.draw_point(
-                self.canvas,
-                transform,
-                point[0],
-                point[1],
-                color,
-                size=5,
-                label=f"{prefix}{index}",
-                theme=self.theme,
-                tags=("conic_elements", "element_points"),
-            )
-
-    def _draw_horizontal_axis(self, transform, y_value, color):
-        ShapeDrawer.draw_line_segment(
-            self.canvas,
-            transform,
-            transform.math_xmin,
-            y_value,
-            transform.math_xmax,
-            y_value,
-            color=color,
-            width=1,
-            dash=(3, 3),
-            tags=("conic_elements", "element_lines"),
-        )
-
-    def _draw_vertical_axis(self, transform, x_value, color):
-        ShapeDrawer.draw_line_segment(
-            self.canvas,
-            transform,
-            x_value,
-            transform.math_ymin,
-            x_value,
-            transform.math_ymax,
-            color=color,
-            width=1,
-            dash=(3, 3),
-            tags=("conic_elements", "element_lines"),
-        )
-
-    def _draw_line_label(self, transform, x_math, y_math, text, color):
-        x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-
-        self.canvas.create_text(
-            x_canvas + 8,
-            y_canvas + 12,
-            text=text,
-            fill=color,
-            font=self.theme.fonts["small"],
-            anchor="w",
-            tags=("conic_elements", "element_labels"),
-        )
-
-    def _draw_axis_label(self, transform, h, k, text):
-        x_canvas, y_canvas = transform.math_to_canvas(h, k)
-
-        self.canvas.create_text(
-            x_canvas + 12,
-            y_canvas + 18,
-            text=text,
-            fill=self.theme.gray,
-            font=self.theme.fonts["small"],
-            anchor="w",
-            tags=("conic_elements", "element_labels"),
-        )
+            ShapeDrawer.draw_asymptote(self.canvas, transform, y_math=k - p,
+                                       color=self.theme.red, tags=line_tags)

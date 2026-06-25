@@ -36,40 +36,24 @@ class TramoPlotter:
         )
 
     def _make_transform(self, x_min, x_max, y_min, y_max):
-        """
-        Crea y guarda la transformación matemática → canvas.
-        """
         transform = CoordinateTransform(
-            self.canvas.winfo_width(),
-            self.canvas.winfo_height(),
-            x_min,
-            x_max,
-            y_min,
-            y_max,
+            self.canvas.winfo_width(), self.canvas.winfo_height(),
+            x_min, x_max, y_min, y_max,
+            keep_aspect=False,
         )
 
         self.last_transform = transform
-
         return transform
 
     def _draw_base(self, transform, spacing=1):
-        """
-        Dibuja grilla, ejes y etiquetas.
-        """
         GridDrawer.draw_grid(
-            self.canvas,
-            transform,
+            self.canvas, transform,
             grid_spacing=spacing,
             grid_color=self.theme.border,
             axis_color=self.theme.gray,
         )
 
-        GridDrawer.draw_axis_labels(
-            self.canvas,
-            transform,
-            self.theme,
-            spacing=spacing,
-        )
+        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=spacing)
 
     def _draw_message(self, text):
         """
@@ -122,7 +106,7 @@ class TramoPlotter:
             return None
 
         transform = self._make_transform(x_min, x_max, y_min, y_max)
-        self._draw_base(transform, spacing=1)
+        self._draw_base(transform)
 
         self._draw_function_segment(
             function=function,
@@ -170,7 +154,7 @@ class TramoPlotter:
             return None
 
         transform = self._make_transform(x_min, x_max, y_min, y_max)
-        self._draw_base(transform, spacing=1)
+        self._draw_base(transform)
 
         for piece in pieces:
             function = piece.get("func")

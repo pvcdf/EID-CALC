@@ -1,55 +1,28 @@
 # conicas-rut/core/conicas/conic_elements.py
 
 """
-Construcción de elementos geométricos de cónicas.
+Construcción de elementos geométricos simples de cónicas.
 
-Este módulo separa la lógica matemática de elementos desde ConicView.
 """
-
-from core.utils.manual_math import safe_div
 
 
 def get_conic_element_fields(conic_type: str) -> list[tuple[str, str]]:
-    """
-    Retorna los campos que debe mostrar la UI para cada tipo de cónica.
-
-    """
     fields = {
         "circle": [
-            ("Centro", "centro"),
-            ("Radio", "radio"),
+            ("Centro", "centro"), ("Radio", "radio"),
         ],
         "ellipse": [
-            ("Centro", "centro"),
-            ("Vértices", "vertices"),
-            ("Co-vértices", "covertices"),
-            ("Focos", "focos"),
-            ("a", "a"),
-            ("b", "b"),
-            ("c", "c"),
-            ("Eje mayor", "eje_mayor"),
-            ("Eje menor", "eje_menor"),
-            ("Orientación", "orientacion"),
+            ("Centro", "centro"), ("Vértices", "vertices"),
+            ("Co-vértices", "covertices"), ("a", "a"),
+            ("b", "b"), ("Orientación", "orientacion"),
         ],
         "hyperbola": [
-            ("Centro", "centro"),
-            ("Vértices", "vertices"),
-            ("Focos", "focos"),
-            ("a", "a"),
-            ("b", "b"),
-            ("c", "c"),
-            ("Eje transverso", "eje_transverso"),
-            ("Eje conjugado", "eje_conjugado"),
-            ("Asíntotas", "asintotas"),
-            ("Orientación", "orientacion"),
+            ("Centro", "centro"), ("Vértices", "vertices"),
+            ("a", "a"), ("b", "b"), ("Orientación", "orientacion"),
         ],
         "parabola": [
-            ("Vértice", "vertice"),
-            ("Foco", "foco"),
-            ("Directriz", "directriz"),
-            ("Eje de simetría", "eje"),
-            ("p", "p"),
-            ("Orientación", "orientacion"),
+            ("Vértice", "vertice"), ("Foco", "foco"),
+            ("Directriz", "directriz"), ("Orientación", "orientacion"),
         ],
     }
 
@@ -57,56 +30,34 @@ def get_conic_element_fields(conic_type: str) -> list[tuple[str, str]]:
 
 
 def build_conic_elements(conic_type: str, transform_data: dict) -> dict:
-    """
-    Construye los elementos geométricos de una cónica.
-    """
     if not isinstance(transform_data, dict):
-        return {
-            "valid": False,
-            "reason": "Datos de transformación inválidos.",
-            "fields": [],
-            "values": {},
-        }
+        return _invalid("Datos de transformación inválidos.")
 
     if transform_data.get("imaginary"):
-        return {
-            "valid": False,
-            "reason": "Sin elementos reales: cónica imaginaria.",
-            "fields": [],
-            "values": {},
-        }
+        return _invalid("Sin elementos reales: cónica imaginaria.")
 
     if transform_data.get("degenerate"):
-        return {
-            "valid": False,
-            "reason": "Cónica degenerada.",
-            "fields": [],
-            "values": {},
-        }
+        return _invalid("Cónica degenerada.")
 
-    fields = get_conic_element_fields(conic_type)
+    builders = {
+        "circle": _circle_elements,
+        "ellipse": _ellipse_elements,
+        "hyperbola": _hyperbola_elements,
+        "parabola": _parabola_elements,
+    }
 
-    if conic_type == "circle":
-        values = _circle_elements(transform_data)
-
-    elif conic_type == "ellipse":
-        values = _ellipse_elements(transform_data)
-
-    elif conic_type == "hyperbola":
-        values = _hyperbola_elements(transform_data)
-
-    elif conic_type == "parabola":
-        values = _parabola_elements(transform_data)
-
-    else:
-        values = {}
+    values = builders.get(conic_type, lambda _: {})(transform_data)
 
     return {
         "valid": bool(values),
         "reason": "" if values else "No se pudieron construir elementos.",
-        "fields": fields,
+        "fields": get_conic_element_fields(conic_type),
         "values": values,
     }
+
+
+def _invalid(reason: str) -> dict:
+    return {"valid": False, "reason": reason, "fields": [], "values": {}}
 
 
 def _circle_elements(td: dict) -> dict:
@@ -126,38 +77,26 @@ def _ellipse_elements(td: dict) -> dict:
     center = td.get("center")
     a = td.get("a")
     b = td.get("b")
-    c = td.get("c")
 
-    if center is None or a is None or b is None or c is None:
+    if center is None or a is None or b is None:
         return {}
 
     h, k = center
-    orientation = _ellipse_orientation(td)
+    orientation = get_ellipse_orientation(td)
 
-    if orientation == "horizontal":
-        vertices = [(h - a, k), (h + a, k)]
-        covertices = [(h, k - b), (h, k + b)]
-        foci = [(h - c, k), (h + c, k)]
-        eje_mayor = f"y = {_fmt_number(k)}"
-        eje_menor = f"x = {_fmt_number(h)}"
-
-    else:
+    if orientation == "vertical":
         vertices = [(h, k - a), (h, k + a)]
         covertices = [(h - b, k), (h + b, k)]
-        foci = [(h, k - c), (h, k + c)]
-        eje_mayor = f"x = {_fmt_number(h)}"
-        eje_menor = f"y = {_fmt_number(k)}"
+    else:
+        vertices = [(h - a, k), (h + a, k)]
+        covertices = [(h, k - b), (h, k + b)]
 
     return {
         "centro": _fmt_coord(center),
         "vertices": _fmt_points(vertices),
         "covertices": _fmt_points(covertices),
-        "focos": _fmt_points(foci),
         "a": _fmt_number(a),
         "b": _fmt_number(b),
-        "c": _fmt_number(c),
-        "eje_mayor": eje_mayor,
-        "eje_menor": eje_menor,
         "orientacion": orientation,
     }
 
@@ -166,43 +105,23 @@ def _hyperbola_elements(td: dict) -> dict:
     center = td.get("center")
     a = td.get("a")
     b = td.get("b")
-    c = td.get("c")
 
-    if center is None or a is None or b is None or c is None:
+    if center is None or a is None or b is None:
         return {}
 
     h, k = center
     orientation = td.get("orientation", "horizontal")
 
-    if orientation == "horizontal":
-        vertices = [(h - a, k), (h + a, k)]
-        foci = [(h - c, k), (h + c, k)]
-        eje_transverso = f"y = {_fmt_number(k)}"
-        eje_conjugado = f"x = {_fmt_number(h)}"
-        pendiente = safe_div(b, a)
-
-    else:
+    if orientation == "vertical":
         vertices = [(h, k - a), (h, k + a)]
-        foci = [(h, k - c), (h, k + c)]
-        eje_transverso = f"x = {_fmt_number(h)}"
-        eje_conjugado = f"y = {_fmt_number(k)}"
-        pendiente = safe_div(a, b)
-
-    asintotas = (
-        f"y − {_fmt_number(k)} = ±{_fmt_number(pendiente)}"
-        f"(x − {_fmt_number(h)})"
-    )
+    else:
+        vertices = [(h - a, k), (h + a, k)]
 
     return {
         "centro": _fmt_coord(center),
         "vertices": _fmt_points(vertices),
-        "focos": _fmt_points(foci),
         "a": _fmt_number(a),
         "b": _fmt_number(b),
-        "c": _fmt_number(c),
-        "eje_transverso": eje_transverso,
-        "eje_conjugado": eje_conjugado,
-        "asintotas": asintotas,
         "orientacion": orientation,
     }
 
@@ -217,30 +136,25 @@ def _parabola_elements(td: dict) -> dict:
     h, k = vertex
     orientation = td.get("orientation", "vertical")
 
-    if orientation == "vertical":
-        focus = td.get("focus", (h, k + p))
-        directrix = td.get("directrix", f"y = {_fmt_number(k - p)}")
-        axis = td.get("axis", f"x = {_fmt_number(h)}")
-
-    else:
+    if orientation == "horizontal":
         focus = td.get("focus", (h + p, k))
         directrix = td.get("directrix", f"x = {_fmt_number(h - p)}")
-        axis = td.get("axis", f"y = {_fmt_number(k)}")
+    else:
+        focus = td.get("focus", (h, k + p))
+        directrix = td.get("directrix", f"y = {_fmt_number(k - p)}")
 
     return {
         "vertice": _fmt_coord(vertex),
         "foco": _fmt_coord(focus),
         "directriz": directrix,
-        "eje": axis,
-        "p": _fmt_number(p),
         "orientacion": orientation,
     }
 
 
-def _ellipse_orientation(td: dict) -> str:
-    """
-    Determina si el eje mayor de la elipse es horizontal o vertical.
-    """
+def get_ellipse_orientation(td: dict) -> str:
+    if not isinstance(td, dict):
+        return "horizontal"
+
     if td.get("major_axis"):
         return td["major_axis"]
 
@@ -251,9 +165,6 @@ def _ellipse_orientation(td: dict) -> str:
 
 
 def _fmt_number(value, digits=2) -> str:
-    """
-    Formatea números para mostrarlos en la UI.
-    """
     if value is None:
         return "—"
 
