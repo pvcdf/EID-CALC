@@ -1,15 +1,15 @@
 # conicas-rut/core/conicas/transforms/canonical_transform.py
 
-from core.utils.result_models import build_error
 from core.conicas.transforms.circle_transform import transform_circle
 from core.conicas.transforms.elipse_transform import transform_ellipse
 from core.conicas.transforms.hyperbola_transform import transform_hyperbola
 from core.conicas.transforms.parabola_transform import transform_parabola
+from core.utils.result_models import build_error
 
 
-def transform_conic(conic_type, A, B, C, D, E):
+def transform_conic(conic_type: str, A, B, C, D, E) -> dict:
     """
-    Ejecuta la transformación correspondiente según el tipo de cónica.
+    Redirige la transformación canónica según el tipo de cónica.
     """
     if conic_type == "circle":
         return transform_circle(A, B, C, D, E)
@@ -24,5 +24,5 @@ def transform_conic(conic_type, A, B, C, D, E):
         return transform_parabola(A, B, C, D, E)
 
     return build_error(
-        error=f"No existe transformación para '{conic_type}'."
+        error=f"Tipo de cónica no soportado: {conic_type}"
     )

@@ -1,175 +1,175 @@
 # conicas-rut/core/conicas/transforms/circle_transform.py
 
+from core.utils.manual_math import round_value, sqrt_value, shift_text
 from core.utils.result_models import build_success, build_error
 
-#helpers internos para no repetir lógica en cada transform.
-def _r(value: float, digits: int = 4) -> float:
-    return round(value, digits)
 
-#Redondea valores para mostrar en pasos, canónicas y data  
-def _sqrt(value: float) -> float:
-    return value ** 0.5
-
-
-def _shift(variable: str, value: float) -> str:
-    value = _r(value)
-
-    if value == 0:
-        return variable
-
-    if value > 0:
-        return f"{variable} − {value}"
-
-    return f"{variable} + {_r(-value)}"
-
-
-def transform_circle(A, B, C, D, E):
-    steps: list[dict] = []
+def transform_circle(A, B, C, D, E) -> dict:
+    """
+    Transforma una circunferencia desde forma general a forma canónica.
+    """
+    steps = []
 
     try:
-        A = round(A, 6)
-        B = round(B, 6)
-        C = round(C, 6)
-        D = round(D, 6)
-        E = round(E, 6)
+        A = round_value(A, 6)
+        B = round_value(B, 6)
+        C = round_value(C, 6)
+        D = round_value(D, 6)
+        E = round_value(E, 6)
 
         if A == 0 or B == 0:
             return build_error(
                 error="No se puede transformar como circunferencia porque A o B es cero.",
-                steps=steps,
+                data={
+                    "A": A,
+                    "B": B,
+                    "C": C,
+                    "D": D,
+                    "E": E,
+                },
+            )
+
+        if A != B:
+            return build_error(
+                error="No se puede transformar como circunferencia porque A y B son distintos.",
+                data={
+                    "A": A,
+                    "B": B,
+                    "C": C,
+                    "D": D,
+                    "E": E,
+                },
             )
 
         steps.append({
-            "title": "Ecuación general de la circunferencia",
-            "explanation": (
-                "Como A = B, la ecuación general tiene la forma "
-                "A·x² + A·y² + C·x + D·y + E = 0."
-            ),
-            "equation": f"({A})x² + ({B})y² + ({C})x + ({D})y + {E} = 0",
-        })
-
-        CA = C / A
-        DA = D / A
-        EA = E / A
-
-        steps.append({
-            "title": "Paso 1 — Dividir por A",
-            "explanation": "Se divide toda la ecuación por A para dejar coeficientes cuadráticos iguales a 1.",
-            "equation": f"x² + y² + ({_r(CA)})x + ({_r(DA)})y + {_r(EA)} = 0",
-        })
-
-        steps.append({
-            "title": "Paso 2 — Agrupar y despejar constante",
-            "explanation": "Se agrupan los términos en x e y, pasando E/A al lado derecho.",
-            "equation": f"(x² + ({_r(CA)})x) + (y² + ({_r(DA)})y) = {_r(-EA)}",
+            "title": "Ecuación general",
+            "explanation": "Se parte desde la forma Ax² + Ay² + Cx + Dy + E = 0.",
+            "equation": f"{A}x² + {B}y² + {C}x + {D}y + {E} = 0",
         })
 
         h = -C / (2 * A)
         k = -D / (2 * A)
 
-        term_x = (C / (2 * A)) ** 2
-        term_y = (D / (2 * A)) ** 2
-
         steps.append({
-            "title": "Paso 3 — Completar cuadrado",
+            "title": "Centro de la circunferencia",
             "explanation": (
-                f"Se suma (C/2A)² = {_r(term_x)} y "
-                f"(D/2A)² = {_r(term_y)} a ambos lados."
+                "Para completar cuadrados se usan "
+                "h = −C/(2A) y k = −D/(2A)."
             ),
             "equation": (
-                f"({_shift('x', h)})² + ({_shift('y', k)})² = "
-                f"{_r(-EA)} + {_r(term_x)} + {_r(term_y)}"
+                f"h = −({C})/(2·{A}) = {round_value(h)} ; "
+                f"k = −({D})/(2·{A}) = {round_value(k)}"
             ),
+            "result": f"Centro = ({round_value(h)}, {round_value(k)})",
         })
 
-        radius_squared = h ** 2 + k ** 2 - E / A
+        radius_squared = h**2 + k**2 - (E / A)
 
         steps.append({
-            "title": "Paso 4 — Calcular r²",
-            "explanation": (
-                "Dado que h = −C/2A y k = −D/2A, "
-                "el lado derecho se simplifica como r² = h² + k² − E/A."
-            ),
+            "title": "Radio al cuadrado",
+            "explanation": "El radio se obtiene desde r² = h² + k² − E/A.",
             "equation": (
-                f"r² = ({_r(h)})² + ({_r(k)})² − ({_r(EA)}) "
-                f"= {_r(h ** 2)} + {_r(k ** 2)} − ({_r(EA)})"
+                f"r² = ({round_value(h)})² + ({round_value(k)})² − ({E}/{A}) "
+                f"= {round_value(radius_squared)}"
             ),
-            "result": str(_r(radius_squared)),
+            "result": f"r² = {round_value(radius_squared)}",
         })
 
-        canonical = (
-            f"({_shift('x', h)})² + ({_shift('y', k)})² = {_r(radius_squared)}"
+        canonical_form = (
+            f"({shift_text('x', h)})² + "
+            f"({shift_text('y', k)})² = {round_value(radius_squared)}"
         )
 
         if radius_squared < 0:
             steps.append({
-                "title": "Circunferencia imaginaria",
+                "title": "Conclusión",
                 "explanation": (
-                    f"r² = {_r(radius_squared)} < 0. "
-                    "No existe radio real, por lo tanto la ecuación no tiene puntos reales."
+                    "Como r² < 0, no existe radio real. "
+                    "La ecuación representa una circunferencia imaginaria."
                 ),
-                "equation": canonical,
             })
 
             return build_error(
-                error=(
-                    f"Circunferencia imaginaria: r² = {_r(radius_squared)} < 0. "
-                    "La ecuación no tiene puntos reales."
-                ),
+                error=f"Circunferencia imaginaria: r² = {round_value(radius_squared)} < 0.",
                 steps=steps,
                 data={
+                    "A": A,
+                    "B": B,
+                    "C": C,
+                    "D": D,
+                    "E": E,
+                    "center": (round_value(h), round_value(k)),
+                    "h": round_value(h),
+                    "k": round_value(k),
+                    "radius": None,
+                    "radius_squared": round_value(radius_squared),
+                    "canonical_form": canonical_form,
                     "imaginary": True,
                     "degenerate": False,
-                    "center": (_r(h), _r(k)),
-                    "radius_squared": _r(radius_squared),
-                    "canonical_form": canonical,
                 },
             )
 
         if radius_squared == 0:
             steps.append({
-                "title": "Circunferencia degenerada",
+                "title": "Conclusión",
                 "explanation": (
-                    f"r² = 0. La circunferencia se reduce al punto ({_r(h)}, {_r(k)})."
+                    "Como r² = 0, la circunferencia se reduce a un único punto: "
+                    "su centro."
                 ),
-                "equation": canonical,
             })
 
             return build_error(
-                error=f"Circunferencia degenerada: se reduce al punto ({_r(h)}, {_r(k)}).",
+                error="Circunferencia degenerada: r² = 0.",
                 steps=steps,
                 data={
+                    "A": A,
+                    "B": B,
+                    "C": C,
+                    "D": D,
+                    "E": E,
+                    "center": (round_value(h), round_value(k)),
+                    "h": round_value(h),
+                    "k": round_value(k),
+                    "radius": 0,
+                    "radius_squared": 0,
+                    "canonical_form": canonical_form,
                     "imaginary": False,
                     "degenerate": True,
-                    "center": (_r(h), _r(k)),
-                    "radius_squared": 0.0,
-                    "canonical_form": canonical,
                 },
             )
 
-        radius = _sqrt(radius_squared)
+        radius = sqrt_value(radius_squared)
 
         steps.append({
-            "title": "Paso 5 — Forma canónica",
-            "equation": canonical,
-            "result": f"Centro = ({_r(h)}, {_r(k)})   r = {_r(radius)}",
+            "title": "Forma canónica",
+            "explanation": "Se reemplazan centro y radio en la forma canónica.",
+            "equation": canonical_form,
+            "result": f"r = {round_value(radius)}",
         })
 
         return build_success(
             conic_type="circle",
-            explanation="La circunferencia fue transformada correctamente.",
+            explanation="La circunferencia fue transformada a forma canónica.",
             steps=steps,
             data={
-                "canonical_form": canonical,
-                "center": (_r(h), _r(k)),
-                "h": _r(h),
-                "k": _r(k),
-                "radius": _r(radius),
-                "radius_squared": _r(radius_squared),
+                "A": A,
+                "B": B,
+                "C": C,
+                "D": D,
+                "E": E,
+                "center": (round_value(h), round_value(k)),
+                "h": round_value(h),
+                "k": round_value(k),
+                "radius": round_value(radius),
+                "radius_squared": round_value(radius_squared),
+                "canonical_form": canonical_form,
                 "imaginary": False,
                 "degenerate": False,
             },
         )
 
-    except Exception as ex:
-        return build_error(error=str(ex), steps=steps)
+    except Exception as error:
+        return build_error(
+            error=f"Error al transformar circunferencia: {error}",
+            steps=steps,
+        )

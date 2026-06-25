@@ -1,161 +1,271 @@
-# conicas-rut/graphics/tramo_plotter.py
+# conicas-rut/graphics/limites/tramo_plotter.py
 
-from graphics.canvas_utils import CoordinateTransform, GridDrawer, ShapeDrawer
+"""
+Plotter principal de funciones por tramos.
+
+Los elementos especiales de límites, como huecos, puntos cerrados,
+puntos abiertos y asíntotas, quedan separados
+"""
+
+from graphics.utils.canvas_utils import CoordinateTransform, GridDrawer
+
 
 class TramoPlotter:
     def __init__(self, canvas, theme):
-        """
-        Args:
-            canvas: Canvas de tkinter donde se dibujará
-            theme: Objeto de tema con colores y fuentes
-        """
         self.canvas = canvas
         self.theme = theme
+        self.last_transform = None
 
     def clear_plot(self):
-        self.canvas.delete("function", "discontinuity", "hole", "labels")
-
-    def plot_function(self, func, x_min, x_max, y_min, y_max, num_points=300):
         """
-        Args:
-            func: Función callable que toma x y retorna y
-            x_min, x_max: Rango en X
-            y_min, y_max: Rango en Y
-            num_points: Número de puntos para aproximación
+        Limpia el gráfico completo de funciones por tramos.
         """
-        transform = CoordinateTransform(
-            self.canvas.winfo_width(), self.canvas.winfo_height(),
-            x_min, x_max, y_min, y_max
+        self.canvas.delete(
+            "grid",
+            "axis",
+            "labels",
+            "function",
+            "piecewise",
+            "limit_elements",
+            "limit_points",
+            "limit_lines",
+            "limit_labels",
+            "hole",
+            "asymptote",
+            "shapes",
         )
 
-        GridDrawer.draw_grid(self.canvas, transform, grid_spacing=1, grid_color=self.theme.border, axis_color=self.theme.gray)
-        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=2)
-
-        # Graficar función
-        prev_x_canvas, prev_y_canvas = None, None
-        for i in range(num_points + 1):
-            x_math = x_min + (i / num_points) * (x_max - x_min)
-            try:
-                y_math = func(x_math)
-                if y_min <= y_math <= y_max:
-                    x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-                    if prev_x_canvas is not None:
-                        self.canvas.create_line(
-                            prev_x_canvas, prev_y_canvas, x_canvas, y_canvas,
-                            fill=self.theme.accent, width=2, tags="function"
-                        )
-                    prev_x_canvas, prev_y_canvas = x_canvas, y_canvas
-                else:
-                    prev_x_canvas, prev_y_canvas = None, None
-            except (ValueError, ZeroDivisionError):
-                prev_x_canvas, prev_y_canvas = None, None
-
-    def plot_piecewise(self, pieces, x_min, x_max, y_min, y_max):
+    def _make_transform(self, x_min, x_max, y_min, y_max):
         """
-        Args:
-            pieces: Lista de diccionarios con estructura:
-                {
-                    "func": callable,
-                    "x_min": float,
-                    "x_max": float,
-                    "color": str (opcional, default accent),
-                    "discontinuity_type": str (opcional: "jump", "infinite", "removable")
-                }
-            x_min, x_max: Rango global en X
-            y_min, y_max: Rango global en Y
+        Crea y guarda la transformación matemática → canvas.
         """
         transform = CoordinateTransform(
-            self.canvas.winfo_width(), self.canvas.winfo_height(),
-            x_min, x_max, y_min, y_max
+            self.canvas.winfo_width(),
+            self.canvas.winfo_height(),
+            x_min,
+            x_max,
+            y_min,
+            y_max,
         )
 
-        GridDrawer.draw_grid(self.canvas, transform, grid_spacing=1, grid_color=self.theme.border, axis_color=self.theme.gray)
-        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=2)
+        self.last_transform = transform
 
-        # Graficar cada tramo
+        return transform
+
+    def _draw_base(self, transform, spacing=1):
+        """
+        Dibuja grilla, ejes y etiquetas.
+        """
+        GridDrawer.draw_grid(
+            self.canvas,
+            transform,
+            grid_spacing=spacing,
+            grid_color=self.theme.border,
+            axis_color=self.theme.gray,
+        )
+
+        GridDrawer.draw_axis_labels(
+            self.canvas,
+            transform,
+            self.theme,
+            spacing=spacing,
+        )
+
+    def _draw_message(self, text):
+        """
+        Dibuja un mensaje centrado en el canvas.
+        """
+        self.clear_plot()
+
+        width = max(self.canvas.winfo_width(), 300)
+        height = max(self.canvas.winfo_height(), 220)
+
+        self.canvas.create_text(
+            width / 2,
+            height / 2,
+            text=text,
+            fill=self.theme.gray,
+            font=self.theme.fonts["body"],
+            tags="labels",
+            width=width - 40,
+            justify="center",
+        )
+
+    # ── Función única ──────────────────────────────────────────────────────
+
+    def plot_function(
+        self,
+        function,
+        x_min=-10,
+        x_max=10,
+        y_min=-10,
+        y_max=10,
+        samples=700,
+    ):
+        """
+        Dibuja una función continua aproximada en un intervalo.
+
+        Parámetros:
+            function: función que recibe x y retorna y.
+            x_min, x_max: dominio visible.
+            y_min, y_max: rango visible.
+            samples: cantidad de puntos de muestreo.
+        """
+        self.clear_plot()
+
+        if not callable(function):
+            self._draw_message("No se puede graficar: función inválida.")
+            return None
+
+        if x_min == x_max or y_min == y_max:
+            self._draw_message("No se puede graficar: ventana inválida.")
+            return None
+
+        transform = self._make_transform(x_min, x_max, y_min, y_max)
+        self._draw_base(transform, spacing=1)
+
+        self._draw_function_segment(
+            function=function,
+            transform=transform,
+            x_start=x_min,
+            x_end=x_max,
+            samples=samples,
+            tag="function",
+        )
+
+        return transform
+
+    # ── Función por tramos ─────────────────────────────────────────────────
+
+    def plot_piecewise(
+        self,
+        pieces,
+        x_min=-10,
+        x_max=10,
+        y_min=-10,
+        y_max=10,
+        samples_per_piece=350,
+    ):
+        """
+        Dibuja una función por tramos.
+
+        Cada tramo debe tener:
+        {
+            "func": callable,
+            "x_min": float,
+            "x_max": float,
+        }
+
+        Puede traer otras claves, pero este plotter solo usa func, x_min y x_max.
+        Los elementos especiales se dibujan en LimitElementsPlotter.
+        """
+        self.clear_plot()
+
+        if not pieces:
+            self._draw_message("No hay tramos para graficar.")
+            return None
+
+        if x_min == x_max or y_min == y_max:
+            self._draw_message("No se puede graficar: ventana inválida.")
+            return None
+
+        transform = self._make_transform(x_min, x_max, y_min, y_max)
+        self._draw_base(transform, spacing=1)
+
         for piece in pieces:
-            func = piece.get("func")
-            piece_x_min = max(piece.get("x_min", x_min), x_min)
-            piece_x_max = min(piece.get("x_max", x_max), x_max)
-            color = piece.get("color", self.theme.accent)
-            num_points = 150
+            function = piece.get("func")
 
-            prev_x_canvas, prev_y_canvas = None, None
-            for i in range(num_points + 1):
-                x_math = piece_x_min + (i / num_points) * (piece_x_max - piece_x_min)
-                try:
-                    y_math = func(x_math)
-                    if y_min <= y_math <= y_max:
-                        x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-                        if prev_x_canvas is not None:
-                            self.canvas.create_line(
-                                prev_x_canvas, prev_y_canvas, x_canvas, y_canvas,
-                                fill=color, width=2, tags="function"
-                            )
-                        prev_x_canvas, prev_y_canvas = x_canvas, y_canvas
-                    else:
-                        prev_x_canvas, prev_y_canvas = None, None
-                except (ValueError, ZeroDivisionError):
-                    prev_x_canvas, prev_y_canvas = None, None
+            if not callable(function):
+                continue
 
-            # Marcar discontinuidad
-            disc_type = piece.get("discontinuity_type")
-            if disc_type:
-                self._draw_discontinuity(transform, piece_x_max, disc_type)
+            piece_x_min = piece.get("x_min", x_min)
+            piece_x_max = piece.get("x_max", x_max)
 
-    def _draw_discontinuity(self, transform, x_math, disc_type):
-        """
-        Args:
-            transform: Instancia de CoordinateTransform
-            x_math: Coordenada X donde ocurre la discontinuidad
-            disc_type: "jump", "infinite" o "removable"
-        """
-        x_canvas, _ = transform.math_to_canvas(x_math, 0)
+            start = max(piece_x_min, x_min)
+            end = min(piece_x_max, x_max)
 
-        if disc_type == "jump":
-            # Línea punteada vertical para salto
-            self.canvas.create_line(
-                x_canvas, 0, x_canvas, transform.canvas_height,
-                fill=self.theme.red, dash=(4, 4), width=2, tags="discontinuity"
+            if start >= end:
+                continue
+
+            self._draw_function_segment(
+                function=function,
+                transform=transform,
+                x_start=start,
+                x_end=end,
+                samples=samples_per_piece,
+                tag="piecewise",
             )
 
-        elif disc_type == "infinite":
-            # Asíntota vertical
-            ShapeDrawer.draw_asymptote(self.canvas, transform, x_math=x_math, color=self.theme.red)
+        return transform
 
-        elif disc_type == "removable":
-            # Hueco (círculo vacío)
+    def _draw_function_segment(
+        self,
+        function,
+        transform,
+        x_start,
+        x_end,
+        samples=350,
+        tag="function",
+    ):
+        """
+        Dibuja un segmento de función usando muestreo.
+
+        Si la función genera error, valor None o un valor fuera de rango,
+        se corta el trazo para evitar líneas falsas entre ramas.
+        """
+        previous = None
+
+        for index in range(samples + 1):
+            x_math = x_start + (index / samples) * (x_end - x_start)
+
             try:
-                y_math = self.last_y_value
-                ShapeDrawer.draw_hole(self.canvas, transform, x_math, y_math, color=self.theme.red, size=6)
-            except AttributeError:
-                pass
+                y_math = function(x_math)
 
-    def add_point(self, transform, x_math, y_math, color=None, label=None):
-        """
-        Args:
-            transform: Instancia de CoordinateTransform
-            x_math, y_math: Coordenadas matemáticas
-            color: Color del punto (default: accent)
-            label: Etiqueta opcional
-        """
-        if color is None:
-            color = self.theme.accent
-        ShapeDrawer.draw_point(self.canvas, transform, x_math, y_math, color, size=4, label=label, theme=self.theme)
+            except (ZeroDivisionError, ValueError, OverflowError):
+                previous = None
+                continue
 
-    def add_discontinuity_point(self, transform, x_math, y_math):
-        """
-        Args:
-            transform: Instancia de CoordinateTransform
-            x_math, y_math: Coordenadas matemáticas del hueco
-        """
-        ShapeDrawer.draw_hole(self.canvas, transform, x_math, y_math, color=self.theme.red, size=5)
+            if y_math is None:
+                previous = None
+                continue
 
-    def add_asymptote(self, transform, x_math=None, y_math=None):
+            if not self._is_number(y_math):
+                previous = None
+                continue
+
+            if not self._is_visible_y(y_math, transform):
+                previous = None
+                continue
+
+            x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+
+            if previous is not None:
+                self.canvas.create_line(
+                    previous[0],
+                    previous[1],
+                    x_canvas,
+                    y_canvas,
+                    fill=self.theme.accent,
+                    width=2,
+                    tags=tag,
+                )
+
+            previous = (x_canvas, y_canvas)
+
+    def _is_number(self, value) -> bool:
         """
-        Args:
-            transform: Instancia de CoordinateTransform
-            x_math: Si es vertical, coordenada X
-            y_math: Si es horizontal, coordenada Y
+        Verifica que value sea numérico simple.
         """
-        ShapeDrawer.draw_asymptote(self.canvas, transform, x_math=x_math, y_math=y_math, color=self.theme.yellow)
+        return isinstance(value, int) or isinstance(value, float)
+
+    def _is_visible_y(self, y_value, transform) -> bool:
+        """
+        Evita dibujar puntos extremadamente fuera del rango visible.
+        """
+        margin = (transform.math_ymax - transform.math_ymin) * 0.25
+
+        return (
+            transform.math_ymin - margin
+            <= y_value
+            <= transform.math_ymax + margin
+        )

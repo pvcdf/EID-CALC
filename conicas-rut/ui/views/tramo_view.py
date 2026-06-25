@@ -1,28 +1,32 @@
 # conicas-rut/ui/views/tramo_view.py
-import re
-import tkinter as tk
-from tkinter import Frame, Label, Entry
 
+import tkinter as tk
+
+from core.limites.limit_analyzer import AnalizarLimites
+from core.limites.limit_elements import (
+    build_limit_answer_values, build_limit_generation_steps,
+    build_rule_bullets, build_value_table_rows, format_value,
+)
+from core.limites.tramo_function import CrearVariables
+from graphics.limites.limit_elements_plotter import LimitElementsPlotter
+from graphics.limites.tramo_plotter import TramoPlotter
+from ui.components.card import CardFrame
 from ui.components.graph_panel import GraphPanel
 from ui.components.header import SectionHeader
+from ui.components.limit_element_inputs import LimitElementsInput
 from ui.components.panel import PanelFrame
-from ui.components.card import CardFrame
 from ui.components.step_display import StepContainer
 
-from core.tramo_function import CrearVariables
-from core.limit_analyzer import AnalizarLimites
-from core.value_table import CrearTablaValores
-from graphics.tramo_plotter import TramoPlotter
 
-
-class TramoView(Frame):
-
+class TramoView(tk.Frame):
     def __init__(self, master, theme, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.theme = theme
-        self._datos    = None
+        self._datos = None
         self._analisis = None
         self._build()
+
+    # ── Construcción UI ────────────────────────────────────────────────────
 
     def _build(self):
         t = self.theme
@@ -36,59 +40,61 @@ class TramoView(Frame):
         self._build_center()
         self._build_right()
 
-    # ── Columna izquierda ─────────────────────────────────────────────────
-
     def _build_left(self):
         t = self.theme
         self.left = PanelFrame(self, t, padx=12, pady=12)
         self.left.grid(row=0, column=0, sticky="nsew")
 
         SectionHeader(self.left, "Función por tramos", t).pack(fill="x")
+        self._build_info_card()
+        self._build_expression_card()
 
-        # Punto crítico
-        info_card = CardFrame(self.left, t, padx=12, pady=10)
-        info_card.pack(fill="x", pady=(10, 0))
-        for i, (name, attr) in enumerate([("a", "_a_val"), ("Tipo", "_tipo_val")]):
-            info_card.columnconfigure(i, weight=1)
-            col = Frame(info_card, bg=t.card)
-            col.grid(row=0, column=i, sticky="ew", padx=(0, 8) if i == 0 else 0)
-            Label(col, text=name, bg=t.card, fg=t.gray,
-                  font=t.fonts["mono_sm"], anchor="center").pack(fill="x")
-            lbl = Label(col, text="—", bg=t.card, fg=t.accent2,
-                        font=t.fonts["mono"], anchor="center")
-            lbl.pack(fill="x")
-            setattr(self, attr, lbl)
+        SectionHeader(self.left, "Regla aplicada", t).pack(fill="x", pady=(16, 0))
+        self._build_rule_card()
 
-        # Expresión de la función
-        expr_card = CardFrame(self.left, t, padx=12, pady=10)
-        expr_card.pack(fill="x", pady=(10, 0))
-        Label(expr_card, text="Definición", bg=t.card, fg=t.gray,
-              font=t.fonts["small"]).pack(anchor="w")
-        self._expr_f1 = Label(expr_card, text="—", bg=t.card, fg=t.fg,
-                               font=t.fonts["mono_sm"], anchor="w")
-        self._expr_f1.pack(anchor="w", pady=(4, 0))
-        self._expr_f2 = Label(expr_card, text="", bg=t.card, fg=t.gray,
-                               font=t.fonts["mono_sm"], anchor="w")
-        self._expr_f2.pack(anchor="w")
-
-        # Regla aplicada
-        SectionHeader(self.left, "Regla aplicada", t).pack(
-            fill="x", pady=(16, 0))
-        rule_card = CardFrame(self.left, t, padx=12, pady=10)
-        rule_card.pack(fill="x", pady=(6, 0))
-        self._rule_label = Label(
-            rule_card, text="—", bg=t.card, fg=t.gray,
-            font=t.fonts["small"], wraplength=1, justify="left", anchor="w")
-        self._rule_label.pack(fill="x")
-        self._rule_label.bind("<Configure>", lambda e: self._rule_label.configure(wraplength=e.width - 4))
-
-        # Pasos
-        SectionHeader(self.left, "Pasos — Generación", t).pack(
-            fill="x", pady=(16, 0))
+        SectionHeader(self.left, "Pasos — Generación", t).pack(fill="x", pady=(16, 0))
         self.step_container = StepContainer(self.left, t)
         self.step_container.pack(fill="both", expand=True, pady=(6, 0))
 
-    # ── Columna centro ──────────────────────────────────────────
+    def _build_info_card(self):
+        t = self.theme
+        card = CardFrame(self.left, t, padx=12, pady=10)
+        card.pack(fill="x", pady=(10, 0))
+        self._info_labels = {}
+
+        for i, (title, key) in enumerate([("a", "a"), ("Tipo", "tipo")]):
+            card.columnconfigure(i, weight=1)
+            col = tk.Frame(card, bg=t.card)
+            col.grid(row=0, column=i, sticky="ew", padx=(0, 8) if i == 0 else 0)
+
+            self._label(col, title, t.card, t.gray, t.fonts["mono_sm"], anchor="center").pack(fill="x")
+            lbl = self._label(col, "—", t.card, t.accent2, t.fonts["mono"], anchor="center")
+            lbl.pack(fill="x")
+            self._info_labels[key] = lbl
+
+    def _build_expression_card(self):
+        t = self.theme
+        card = CardFrame(self.left, t, padx=12, pady=10)
+        card.pack(fill="x", pady=(10, 0))
+
+        self._label(card, "Definición", t.card, t.gray, t.fonts["small"]).pack(anchor="w")
+
+        self._expr_f1 = self._label(card, "—", t.card, t.fg, t.fonts["mono_sm"], anchor="w", justify="left", wraplength=1)
+        self._expr_f2 = self._label(card, "", t.card, t.gray, t.fonts["mono_sm"], anchor="w", justify="left", wraplength=1)
+        self._expr_f1.pack(fill="x", pady=(4, 0))
+        self._expr_f2.pack(fill="x")
+
+        self._expr_f1.bind("<Configure>", lambda e: self._expr_f1.configure(wraplength=max(e.width - 4, 40)))
+        self._expr_f2.bind("<Configure>", lambda e: self._expr_f2.configure(wraplength=max(e.width - 4, 40)))
+
+    def _build_rule_card(self):
+        t = self.theme
+        card = CardFrame(self.left, t, padx=12, pady=10)
+        card.pack(fill="x", pady=(6, 0))
+
+        self._rule_label = self._label(card, "—", t.card, t.gray, t.fonts["small"], anchor="w", justify="left", wraplength=1)
+        self._rule_label.pack(fill="x")
+        self._rule_label.bind("<Configure>", lambda e: self._rule_label.configure(wraplength=max(e.width - 4, 40)))
 
     def _build_center(self):
         t = self.theme
@@ -96,179 +102,97 @@ class TramoView(Frame):
         self.center.grid(row=0, column=1, sticky="nsew")
         self.center.rowconfigure(0, weight=1)
         self.center.columnconfigure(0, weight=1)
-        self.graph_panel = GraphPanel(
-            self.center, t, title="Gráfico de función por tramos")
-        self.graph_panel.grid(
-            row=0, column=0, sticky="nsew", padx=6, pady=6)
 
-    # ── Columna derecha ───────────────────────────
+        self.graph_panel = GraphPanel(self.center, t, title="Gráfico de función por tramos")
+        self.graph_panel.grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
+        self.graph_panel.set_resize_callback(self._render_graph)
 
     def _build_right(self):
         t = self.theme
         self.right = PanelFrame(self, t, padx=12, pady=12)
         self.right.grid(row=0, column=2, sticky="nsew")
 
-        # ── Tabla de valores ──────────────────────────────────────────────
         SectionHeader(self.right, "Tabla de valores", t).pack(fill="x")
+        self._build_table()
 
-        tbl_card = CardFrame(self.right, t, padx=8, pady=6)
-        tbl_card.pack(fill="x", pady=(8, 0))
-        tbl_card.columnconfigure(0, weight=1)
-        tbl_card.columnconfigure(1, weight=1)
-        tbl_card.columnconfigure(2, weight=1, minsize=100)
+        self.answers_input = LimitElementsInput(self.right, t)
+        self.answers_input.pack(fill="x")
 
-        # Encabezado fijo
-        for col_i, txt in enumerate(["x", "f(x)", "Lado"]):
-            Label(tbl_card, text=txt, bg=t.card, fg=t.gray,
-                font=t.fonts["mono_sm"], anchor="center").grid(
-                row=0, column=col_i, sticky="ew", padx=4, pady=(0, 4))
+        self._build_answer_buttons()
 
-        Frame(tbl_card, bg=t.border, height=1).grid(
-            row=1, column=0, columnspan=3, sticky="ew")
-
-        self._table_body = tbl_card  # el body ES la misma card
-        self._table_body_start_row = 2  # las filas de datos empiezan en row=2
-
-        # ── Análisis de límites───────────────────────────
-        SectionHeader(self.right, "Análisis de límites", t).pack(
-            fill="x", pady=(14, 0))
-
-        self._entries = {}
-        self._add_field("Límite izquierdo   lím(x→a⁻)", "lim_izq")
-        self._add_field("Límite derecho     lím(x→a⁺)", "lim_der")
-        self._add_field("Conclusión — existencia del límite", "concl_limite")
-        self._add_field("Valor  f(a)", "f_a")
-
-        SectionHeader(self.right, "Continuidad", t).pack(
-            fill="x", pady=(12, 0))
-
-        self._add_field("Conclusión — continuidad en x = a", "concl_cont")
-        self._add_field("Tipo de discontinuidad", "tipo_disc")
-        self._add_field("Justificación escrita", "justif", tall=True)
-
-        # Botón revelar
-        tk.Button(
-            self.right,
-            text="Verificar respuestas",
-            bg=t.panel, fg=t.gray,
-            font=t.fonts["small"],
-            bd=0, cursor="hand2",
-            padx=10, pady=6,
-            relief="flat",
-            highlightbackground=t.border,
-            highlightthickness=1,
-            activebackground=t.card,
-            activeforeground=t.fg,
-            command=self._reveal_answers,
-        ).pack(fill="x", pady=(10, 0))
-
-    def _add_field(self, label_text, key, tall=False):
-        """Añade un campo Entry vacío con su label encima."""
+    def _build_table(self):
         t = self.theme
-        card = CardFrame(self.right, t, padx=10, pady=8)
-        card.pack(fill="x", pady=(5, 0))
-        Label(card, text=label_text, bg=t.card, fg=t.gray,
-              font=t.fonts["small"], anchor="w").pack(anchor="w")
-        entry = Entry(
-            card,
-            bg=t.panel, fg=t.fg,
-            insertbackground=t.fg,
-            font=t.fonts["mono_sm"],
-            bd=0, relief="flat",
-            highlightbackground=t.border,
-            highlightthickness=1,
-            state="normal",
-        )
-        entry.pack(fill="x", ipady=7 if tall else 4, pady=(3, 0))
-        self._entries[key] = entry
+        self._table_card = CardFrame(self.right, t, padx=8, pady=6)
+        self._table_card.pack(fill="x", pady=(8, 0))
+
+        for col in range(3):
+            self._table_card.columnconfigure(col, weight=1)
+
+        for col, text in enumerate(["x", "f(x)", "Lado"]):
+            self._label(self._table_card, text, t.card, t.gray, t.fonts["mono_sm"], anchor="center").grid(row=0, column=col, sticky="ew", padx=4, pady=(0, 4))
+
+        tk.Frame(self._table_card, bg=t.border, height=1).grid(row=1, column=0, columnspan=3, sticky="ew")
+
+    def _build_answer_buttons(self):
+        t = self.theme
+        row = tk.Frame(self.right, bg=t.panel)
+        row.pack(fill="x", pady=(10, 0))
+        row.columnconfigure(0, weight=1)
+        row.columnconfigure(1, weight=1)
+
+        self._button(row, "Verificar respuestas", self._reveal_answers).grid(row=0, column=0, sticky="ew", padx=(0, 4))
+        self._button(row, "Limpiar", self.answers_input.clear_values).grid(row=0, column=1, sticky="ew", padx=(4, 0))
+
+    # ── Carga de datos ─────────────────────────────────────────────────────
 
     def load_data(self, rut_result: dict):
-        rut_data = rut_result["data"]
-
-        self._datos    = CrearVariables(rut_data)
-        self._analisis = AnalizarLimites(rut_data)
-        tabla          = CrearTablaValores(
-            self._datos["a"], self._datos["funcion"])
+        self._datos = CrearVariables(rut_result)
+        self._analisis = AnalizarLimites(rut_result)
 
         self._populate_left()
         self._populate_steps()
-        self._populate_table(tabla)
+        self._populate_table()
+        self.answers_input.clear_values()
         self.after(50, self._render_graph)
-
-    # ── Poblar columna izquierda ──────────────────────────────────────────
 
     def _populate_left(self):
         d = self._datos
-        tipo_map = {
-            "removible": "Removible",
-            "salto":     "Salto",
-            "infinita":  "Infinita",
-        }
-        self._a_val.config(text=str(d["a"]))
-        self._tipo_val.config(text=tipo_map.get(d["tipo_discontinuidad"], "—"))
+        tipo_map = {"removible": "Removible", "salto": "Salto", "infinita": "Infinita"}
 
+        self._info_labels["a"].config(text=str(d["a"]))
+        self._info_labels["tipo"].config(text=tipo_map.get(d["tipo_discontinuidad"], "—"))
 
-        # Expresión: dos líneas si f1 ≠ f2
-        if d["expr_f1"] != d["expr_f2"]:
-            self._expr_f1.config(text=f"f(x) = {d['expr_f1']}")
-            self._expr_f2.config(text=f"       {d['expr_f2']}")
-        else:
-            self._expr_f1.config(text=f"f(x) = {d['expr_f1']}")
-            self._expr_f2.config(text="")
-
-        texto = d["explicacion"]
-        oraciones = [s.strip() for s in re.split(r'[.;]+', texto) if s.strip()]
-        texto_lista = "\n• " + "\n• ".join(oraciones)
-        self._rule_label.config(text=texto_lista)
-
-    # ── Poblar pasos ──────────────────────────────────────────────────────
+        self._expr_f1.config(text=f"f(x) = {d['expr_f1']}")
+        self._expr_f2.config(text=f"       {d['expr_f2']}" if d["expr_f1"] != d["expr_f2"] else "")
+        self._rule_label.config(text=build_rule_bullets(d.get("explicacion", "")))
 
     def _populate_steps(self):
-        d  = self._datos
-        an = self._analisis
-        pasos = []
-        for i, texto in enumerate(d["pasos_preliminares"]):
-            pasos.append({"title": f"Paso {i + 1}", "explanation": texto})
-        pasos += an["desarrollo_algebraico"]
-        self.step_container.set_steps(pasos)
+        steps = build_limit_generation_steps(self._datos, self._analisis)
+        self.step_container.set_steps(steps)
 
-    # ── Poblar tabla de valores ───────────────────────────────────────────
-
-    def _populate_table(self, tabla):
+    def _populate_table(self):
         t = self.theme
-        # Limpiar solo las filas de datos (desde row 2 en adelante)
-        for w in self._table_body.winfo_children():
-            if int(w.grid_info().get("row", 0)) >= 2:
-                w.destroy()
+        for widget in self._table_card.winfo_children():
+            if int(widget.grid_info().get("row", 0)) >= 2:
+                widget.destroy()
 
-        rows = (
-            [(r, "◀ izq") for r in tabla["izquierda"]] +
-            [(r, "der ▶") for r in tabla["derecha"]]
-        )
+        current_row = 2
+        for item in build_value_table_rows(self._analisis):
+            if item.get("separator_before"):
+                tk.Frame(self._table_card, bg=t.border, height=1).grid(row=current_row, column=0, columnspan=3, sticky="ew", pady=(2, 2))
+                current_row += 1
 
-        for idx, (row, lado) in enumerate(rows):
-            actual_row = idx + 2  # offset por encabezado y separador
+            bg = t.card if current_row % 2 == 0 else t.panel
+            y_text = format_value(item["y"], undefined="Indef.")
+            y_color = t.accent2 if item["y"] is not None else t.red
+            values = [(format_value(item["x"]), t.gray), (y_text, y_color), (item["lado"], t.gray)]
 
-            if idx == len(tabla["izquierda"]):
-                Frame(self._table_body, bg=t.border, height=1).grid(
-                    row=actual_row, column=0, columnspan=3, sticky="ew")
-                actual_row += 1
+            for col, (text, color) in enumerate(values):
+                self._label(self._table_card, text, bg, color, t.fonts["mono_sm"], anchor="center").grid(row=current_row, column=col, sticky="ew", padx=4, pady=2)
 
-            bg      = t.card if idx % 2 == 0 else t.panel
-            x_str   = f"{row['x']:.2f}"
-            y_str   = f"{row['y']:.2f}" if row["y"] is not None else "Indef."
-            y_color = t.accent2 if row["y"] is not None else "#F87171"
+            current_row += 1
 
-            for col_i, (txt, fg) in enumerate([
-                (x_str, t.gray),
-                (y_str, y_color),
-                (lado,  t.gray),
-            ]):
-                Label(self._table_body, text=txt, bg=bg, fg=fg,
-                    font=t.fonts["mono_sm"], anchor="center").grid(
-                    row=actual_row, column=col_i, sticky="ew", padx=4, pady=2)
-
-    # ── Renderizado del gráfico ───────────────────────────────────────────
+    # ── Gráfico ────────────────────────────────────────────────────────────
 
     def _render_graph(self):
         if not self._datos:
@@ -280,87 +204,40 @@ class TramoView(Frame):
             self.after(100, self._render_graph)
             return
 
-        canvas.delete("all")
-        self.graph_panel.clear_placeholder()
-        t      = self.theme
-        d      = self._datos
-        a      = d["a"]
-        tramos = d["funcion_tramos"]
-        tipo   = d["tipo_discontinuidad"]
+        d = self._datos
+        a = d["a"]
+        self.graph_panel.clear_graph()
 
-        x_min, x_max = a - 6, a + 6
-        y_min, y_max = -15, 15
+        plotter = TramoPlotter(canvas, self.theme)
+        transform = plotter.plot_piecewise(d["funcion_tramos"], a - 6, a + 6, -15, 15)
 
-        plotter = TramoPlotter(canvas, t)
-        plotter.plot_piecewise(tramos, x_min, x_max, y_min, y_max)
+        if transform:
+            LimitElementsPlotter(canvas, self.theme).plot_from_analysis(d, self._analisis, transform)
 
-        from graphics.canvas_utils import CoordinateTransform, ShapeDrawer
-        transform = CoordinateTransform(
-            canvas.winfo_width(), canvas.winfo_height(),
-            x_min, x_max, y_min, y_max,
-        )
-        red = "#F87171"
-
-        if tipo == "removible":
-            lim_val = self._analisis["lim_izquierdo"]
-            if lim_val is not None:
-                ShapeDrawer.draw_hole(canvas, transform, a, lim_val,
-                                      color=red, size=6)
-
-        elif tipo == "salto":
-            lim_izq = self._analisis["lim_izquierdo"]
-            lim_der = self._analisis["lim_derecho"]
-            if lim_izq is not None:
-                ShapeDrawer.draw_hole(canvas, transform, a, lim_izq,
-                                      color=red, size=5)
-            if lim_der is not None:
-                ShapeDrawer.draw_point(canvas, transform, a, lim_der,
-                                       color=t.accent2, size=5,
-                                       label=f"f({a})", theme=t)
-
-        elif tipo == "infinita":
-            x_c, _ = transform.math_to_canvas(a, 0)
-            canvas.create_line(
-                x_c, 0, x_c, canvas.winfo_height(),
-                fill=red, dash=(5, 4), width=2, tags="asymptote")
-            canvas.create_text(
-                x_c + 6, 16, text=f"x = {a}",
-                fill=red, font=t.fonts["small"],
-                anchor="w", tags="labels")
-
-    # ── Revelar respuestas ────────────────────────────────────────────────
+    # ── Respuestas ─────────────────────────────────────────────────────────
 
     def _reveal_answers(self):
         if not self._analisis:
             return
-        an = self._analisis
 
-        def _set(key, value):
-            e = self._entries.get(key)
-            if not e:
-                return
-            e.delete(0, "end")
-            e.insert(0, str(value) if value is not None else "No definido")
+        self.answers_input.set_values(build_limit_answer_values(self._analisis))
 
-        lim_izq = an["lim_izquierdo"]
-        lim_der = an["lim_derecho"]
-        _set("lim_izq",    lim_izq  if lim_izq is not None else "±∞")
-        _set("lim_der",    lim_der  if lim_der is not None else "±∞")
-        _set("concl_limite",  an["conclusion_limite"])
-        _set("f_a",
-             an["valor_en_punto"] if an["valor_en_punto"] is not None
-             else "No definido")
-        _set("concl_cont",    an["conclusion_continuidad"])
-        _set("tipo_disc",     an["clasificacion_discontinuidad"])
-        _set("justif",        an["justificacion"])
+    # ── Helpers y tema ─────────────────────────────────────────────────────
 
-    # ── Tema ──────────────────────────────────────────────────────────────
+    def _label(self, parent, text, bg, fg, font, **kwargs):
+        return tk.Label(parent, text=text, bg=bg, fg=fg, font=font, **kwargs)
+
+    def _button(self, parent, text, command):
+        t = self.theme
+        return tk.Button(
+            parent, text=text, command=command, bg=t.panel, fg=t.gray, font=t.fonts["small"],
+            bd=0, cursor="hand2", padx=10, pady=6, relief="flat",
+            highlightbackground=t.border, highlightthickness=1,
+            activebackground=t.card, activeforeground=t.fg,
+        )
 
     def update_theme(self, theme):
         self.theme = theme
         self.configure(bg=theme.bg)
-        self.left.update_theme(theme)
-        self.center.update_theme(theme)
-        self.right.update_theme(theme)
-        self.graph_panel.update_theme(theme)
-        self.step_container.update_theme(theme)
+        for panel in [self.left, self.center, self.right, self.graph_panel, self.step_container, self.answers_input]:
+            panel.update_theme(theme)

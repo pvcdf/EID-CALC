@@ -1,337 +1,437 @@
-# conicas-rut/graphics/conic_plotter.py
+# conicas-rut/graphics/conicas/conic_plotter.py
 
 """
-Funciones para la graficación de cónicas (elipses, hipérbolas, parábolas).
-Proporciona métodos para renderizar cónicas en su forma canónica,
-mostrando focos, vértices y otros elementos especiales.
+Plotter principal de curvas cónicas.
+
+Los elementos geométricos especiales, como focos, vértices, ejes,
+directrices y asíntotas, quedan separados
 """
 
-from graphics.canvas_utils import CoordinateTransform, GridDrawer, ShapeDrawer
+from core.utils.manual_math import (
+    PI,
+    abs_value,
+    cos_taylor,
+    sin_taylor,
+    sqrt_newton,
+)
+from graphics.utils.canvas_utils import CoordinateTransform, GridDrawer
 
-# ── Constante ─────────────────────────────────────────────────────────────────
-_PI = 3.141592653589793
-
-def _sin(x: float) -> float:
-    """Seno via serie de Taylor."""
-    x = x % (2 * _PI)
-    if x > _PI:
-        x -= 2 * _PI
-    return x - x**3/6 + x**5/120 - x**7/5040 + x**9/362880
-
-
-def _cos(x: float) -> float:
-    """Coseno via identidad cos(x) = sin(x + π/2)."""
-    return _sin(x + _PI / 2)
-
-
-def _sqrt(n: float) -> float:
-    """Raíz cuadrada via método de Newton-Raphson."""
-    if n <= 0:
-        return 0.0
-    x = n
-    for _ in range(50):
-        x = (x + n / x) / 2
-    return x
-
-
-# ── Plotter ───────────────────────────────────────────────────────────────────
 
 class ConicPlotter:
     def __init__(self, canvas, theme):
         self.canvas = canvas
         self.theme = theme
+        self.last_transform = None
 
     def clear_plot(self):
-        """Limpia todos los elementos dibujados excepto grid."""
-        self.canvas.delete("conic", "foci", "vertices", "labels")
-
-    def plot_ellipse(self, a, b, h, k, rotation=0):
         """
-        Grafica una elipse en forma canónica (x-h)²/a² + (y-k)²/b² = 1.
-
-        Args:
-            a: Semi-eje mayor (o semieje en dirección X)
-            b: Semi-eje menor (o semieje en dirección Y)
-            h: Traslación horizontal del centro
-            k: Traslación vertical del centro
-            rotation: Ángulo de rotación en grados (futuro)
+        Limpia la curva, la grilla y elementos asociados al gráfico.
         """
-        margin = 2
-        transform = CoordinateTransform(
-            self.canvas.winfo_width(), self.canvas.winfo_height(),
-            h - a - margin, h + a + margin,
-            k - b - margin, k + b + margin
+        self.canvas.delete(
+            "grid",
+            "axis",
+            "labels",
+            "conic",
+            "conic_elements",
+            "element_points",
+            "element_lines",
+            "element_labels",
+            "asymptote",
+            "shapes",
         )
 
-        GridDrawer.draw_grid(self.canvas, transform, grid_spacing=1,
-                             grid_color=self.theme.border, axis_color=self.theme.gray)
-        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=1)
-
-        # Graficar elipse parametricamente
-        num_points = 200
-        points = []
-        for i in range(num_points + 1):
-            angle = (i / num_points) * 2 * _PI
-            x_math = h + a * _cos(angle)
-            y_math = k + b * _sin(angle)
-            x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-            if points:
-                self.canvas.create_line(
-                    points[-1][0], points[-1][1], x_canvas, y_canvas,
-                    fill=self.theme.accent, width=2, tags="conic"
-                )
-            points.append((x_canvas, y_canvas))
-
-        # Focos
-        c = _sqrt(abs(a**2 - b**2))
-        if a > b:
-            focus1 = (h - c, k)
-            focus2 = (h + c, k)
-        else:
-            focus1 = (h, k - c)
-            focus2 = (h, k + c)
-
-        ShapeDrawer.draw_point(self.canvas, transform, focus1[0], focus1[1],
-                               self.theme.yellow, size=5, label="F₁", theme=self.theme)
-        ShapeDrawer.draw_point(self.canvas, transform, focus2[0], focus2[1],
-                               self.theme.yellow, size=5, label="F₂", theme=self.theme)
-
-        # Vértices
-        ShapeDrawer.draw_point(self.canvas, transform, h - a, k,
-                               self.theme.green, size=4, label="V₁", theme=self.theme)
-        ShapeDrawer.draw_point(self.canvas, transform, h + a, k,
-                               self.theme.green, size=4, label="V₂", theme=self.theme)
-        ShapeDrawer.draw_point(self.canvas, transform, h, k - b,
-                               self.theme.green, size=4, label="V₃", theme=self.theme)
-        ShapeDrawer.draw_point(self.canvas, transform, h, k + b,
-                               self.theme.green, size=4, label="V₄", theme=self.theme)
-
-        # Centro
-        ShapeDrawer.draw_point(self.canvas, transform, h, k,
-                               self.theme.accent2, size=3, label="C", theme=self.theme)
-
-    def plot_hyperbola(self, a, b, h, k, orientation="horizontal"):
+    def _draw_base(self, transform, spacing=1):
         """
-        Args:
-            a: Semi-eje transversal
-            b: Semi-eje conjugado
-            h: Traslación horizontal del centro
-            k: Traslación vertical del centro
-            orientation: "horizontal" o "vertical"
+        Dibuja grilla y ejes cartesianos.
         """
-        margin = 2
-        transform = CoordinateTransform(
-            self.canvas.winfo_width(), self.canvas.winfo_height(),
-            h - a - margin, h + a + margin,
-            k - b - margin, k + b + margin
+        GridDrawer.draw_grid(
+            self.canvas,
+            transform,
+            grid_spacing=spacing,
+            grid_color=self.theme.border,
+            axis_color=self.theme.gray,
         )
 
-        GridDrawer.draw_grid(self.canvas, transform, grid_spacing=1,
-                             grid_color=self.theme.border, axis_color=self.theme.gray)
-        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=1)
+        GridDrawer.draw_axis_labels(
+            self.canvas,
+            transform,
+            self.theme,
+            spacing=spacing,
+        )
 
-        # Asíntotas
-        if orientation == "horizontal":
-            ShapeDrawer.draw_asymptote(self.canvas, transform, x_math=h + a)
-            ShapeDrawer.draw_asymptote(self.canvas, transform, x_math=h - a)
-        else:
-            ShapeDrawer.draw_asymptote(self.canvas, transform, y_math=k + b)
-            ShapeDrawer.draw_asymptote(self.canvas, transform, y_math=k - b)
-
-        # Ramas de la hipérbola
-        num_points = 150
-
-        if orientation == "horizontal":
-            for y_offset in range(-int(b * 3), int(b * 3)):
-                y_math = k + y_offset * 0.1
-                if abs(y_math - k) < b * 3:
-                    x_math = h + a * _sqrt(1 + ((y_math - k) / b) ** 2)
-                    x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-                    if y_offset > -int(b * 3):
-                        prev_y = k + (y_offset - 1) * 0.1
-                        prev_x = h + a * _sqrt(1 + ((prev_y - k) / b) ** 2)
-                        prev_x_c, prev_y_c = transform.math_to_canvas(prev_x, prev_y)
-                        self.canvas.create_line(prev_x_c, prev_y_c, x_canvas, y_canvas,
-                                                fill=self.theme.accent, width=2, tags="conic")
-
-            for y_offset in range(-int(b * 3), int(b * 3)):
-                y_math = k + y_offset * 0.1
-                if abs(y_math - k) < b * 3:
-                    x_math = h - a * _sqrt(1 + ((y_math - k) / b) ** 2)
-                    x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-                    if y_offset > -int(b * 3):
-                        prev_y = k + (y_offset - 1) * 0.1
-                        prev_x = h - a * _sqrt(1 + ((prev_y - k) / b) ** 2)
-                        prev_x_c, prev_y_c = transform.math_to_canvas(prev_x, prev_y)
-                        self.canvas.create_line(prev_x_c, prev_y_c, x_canvas, y_canvas,
-                                                fill=self.theme.accent, width=2, tags="conic")
-
-            # Focos
-            c = _sqrt(a**2 + b**2)
-            ShapeDrawer.draw_point(self.canvas, transform, h - c, k,
-                                   self.theme.yellow, size=5, label="F₁", theme=self.theme)
-            ShapeDrawer.draw_point(self.canvas, transform, h + c, k,
-                                   self.theme.yellow, size=5, label="F₂", theme=self.theme)
-
-            # Vértices
-            ShapeDrawer.draw_point(self.canvas, transform, h - a, k,
-                                   self.theme.green, size=4, label="V₁", theme=self.theme)
-            ShapeDrawer.draw_point(self.canvas, transform, h + a, k,
-                                   self.theme.green, size=4, label="V₂", theme=self.theme)
-
-        else:  # vertical
-            for x_offset in range(-int(a * 3), int(a * 3)):
-                x_math = h + x_offset * 0.1
-                if abs(x_math - h) < a * 3:
-                    y_math = k + b * _sqrt(1 + ((x_math - h) / a) ** 2)
-                    x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-                    if x_offset > -int(a * 3):
-                        prev_x = h + (x_offset - 1) * 0.1
-                        prev_y = k + b * _sqrt(1 + ((prev_x - h) / a) ** 2)
-                        prev_x_c, prev_y_c = transform.math_to_canvas(prev_x, prev_y)
-                        self.canvas.create_line(prev_x_c, prev_y_c, x_canvas, y_canvas,
-                                                fill=self.theme.accent, width=2, tags="conic")
-
-            for x_offset in range(-int(a * 3), int(a * 3)):
-                x_math = h + x_offset * 0.1
-                if abs(x_math - h) < a * 3:
-                    y_math = k - b * _sqrt(1 + ((x_math - h) / a) ** 2)
-                    x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-                    if x_offset > -int(a * 3):
-                        prev_x = h + (x_offset - 1) * 0.1
-                        prev_y = k - b * _sqrt(1 + ((prev_x - h) / a) ** 2)
-                        prev_x_c, prev_y_c = transform.math_to_canvas(prev_x, prev_y)
-                        self.canvas.create_line(prev_x_c, prev_y_c, x_canvas, y_canvas,
-                                                fill=self.theme.accent, width=2, tags="conic")
-
-            # Focos
-            c = _sqrt(a**2 + b**2)
-            ShapeDrawer.draw_point(self.canvas, transform, h, k - c,
-                                   self.theme.yellow, size=5, label="F₁", theme=self.theme)
-            ShapeDrawer.draw_point(self.canvas, transform, h, k + c,
-                                   self.theme.yellow, size=5, label="F₂", theme=self.theme)
-
-            # Vértices
-            ShapeDrawer.draw_point(self.canvas, transform, h, k - b,
-                                   self.theme.green, size=4, label="V₁", theme=self.theme)
-            ShapeDrawer.draw_point(self.canvas, transform, h, k + b,
-                                   self.theme.green, size=4, label="V₂", theme=self.theme)
-
-        # Centro
-        ShapeDrawer.draw_point(self.canvas, transform, h, k,
-                               self.theme.accent2, size=3, label="C", theme=self.theme)
-
-    def plot_parabola(self, p, h, k, orientation="vertical"):
+    def _make_transform(self, x_min, x_max, y_min, y_max):
         """
-        Args:
-            p: Distancia focal
-            h: Traslación horizontal del vértice
-            k: Traslación vertical del vértice
-            orientation: "vertical" u "horizontal"
+        Crea y guarda la transformación de coordenadas usada por el gráfico.
         """
-        margin = 2
-        if orientation == "vertical":
-            transform = CoordinateTransform(
-                self.canvas.winfo_width(), self.canvas.winfo_height(),
-                h - 4 * abs(p) - margin, h + 4 * abs(p) + margin,
-                k - 2 * abs(p) - margin, k + 4 * abs(p) + margin
-            )
-        else:
-            transform = CoordinateTransform(
-                self.canvas.winfo_width(), self.canvas.winfo_height(),
-                h - 4 * abs(p) - margin, h + 4 * abs(p) + margin,
-                k - 2 * abs(p) - margin, k + 2 * abs(p) + margin
-            )
+        transform = CoordinateTransform(
+            self.canvas.winfo_width(),
+            self.canvas.winfo_height(),
+            x_min,
+            x_max,
+            y_min,
+            y_max,
+        )
 
-        GridDrawer.draw_grid(self.canvas, transform, grid_spacing=1,
-                             grid_color=self.theme.border, axis_color=self.theme.gray)
-        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=1)
+        self.last_transform = transform
 
-        num_points = 200
+        return transform
 
-        if orientation == "vertical":
-            for i in range(num_points + 1):
-                x_math = h - 4 * abs(p) + (i / num_points) * 8 * abs(p)
-                y_math = k + (x_math - h) ** 2 / (4 * p)
-                x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-                if i > 0:
-                    prev_x = h - 4 * abs(p) + ((i - 1) / num_points) * 8 * abs(p)
-                    prev_y = k + (prev_x - h) ** 2 / (4 * p)
-                    prev_x_c, prev_y_c = transform.math_to_canvas(prev_x, prev_y)
-                    self.canvas.create_line(prev_x_c, prev_y_c, x_canvas, y_canvas,
-                                            fill=self.theme.accent, width=2, tags="conic")
+    def _draw_message(self, text):
+        """
+        Muestra un mensaje centrado en el canvas.
+        """
+        self.clear_plot()
 
-            # Foco y directriz
-            ShapeDrawer.draw_point(self.canvas, transform, h, k + p,
-                                   self.theme.yellow, size=5, label="F", theme=self.theme)
-            ShapeDrawer.draw_asymptote(self.canvas, transform, y_math=k - p,
-                                       color=self.theme.yellow)
+        width = max(self.canvas.winfo_width(), 300)
+        height = max(self.canvas.winfo_height(), 220)
 
-        else:  # horizontal
-            for i in range(num_points + 1):
-                y_math = k - 4 * abs(p) + (i / num_points) * 8 * abs(p)
-                x_math = h + (y_math - k) ** 2 / (4 * p)
-                x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-                if i > 0:
-                    prev_y = k - 4 * abs(p) + ((i - 1) / num_points) * 8 * abs(p)
-                    prev_x = h + (prev_y - k) ** 2 / (4 * p)
-                    prev_x_c, prev_y_c = transform.math_to_canvas(prev_x, prev_y)
-                    self.canvas.create_line(prev_x_c, prev_y_c, x_canvas, y_canvas,
-                                            fill=self.theme.accent, width=2, tags="conic")
+        self.canvas.create_text(
+            width / 2,
+            height / 2,
+            text=text,
+            fill=self.theme.gray,
+            font=self.theme.fonts["body"],
+            tags="labels",
+            width=width - 40,
+            justify="center",
+        )
 
-            # Foco y directriz
-            ShapeDrawer.draw_point(self.canvas, transform, h + p, k,
-                                   self.theme.yellow, size=5, label="F", theme=self.theme)
-            ShapeDrawer.draw_asymptote(self.canvas, transform, x_math=h - p,
-                                       color=self.theme.yellow)
-
-        # Vértice
-        ShapeDrawer.draw_point(self.canvas, transform, h, k,
-                               self.theme.green, size=4, label="V", theme=self.theme)
+    # ── Circunferencia ─────────────────────────────────────────────────────
 
     def plot_circle(self, radius, h, k):
         """
-        Args:
-            radius: Radio de la circunferencia
-            h: Traslación horizontal del centro
-            k: Traslación vertical del centro
+        Grafica la curva de una circunferencia.
+
+        Forma canónica:
+            (x−h)² + (y−k)² = r²
         """
-        margin = 1
-        transform = CoordinateTransform(
-            self.canvas.winfo_width(), self.canvas.winfo_height(),
-            h - radius - margin, h + radius + margin,
-            k - radius - margin, k + radius + margin
+        self.clear_plot()
+
+        radius = abs_value(radius)
+
+        if radius <= 0:
+            self._draw_message(
+                "No se puede graficar la circunferencia: radio no positivo."
+            )
+            return None
+
+        margin = max(1, radius * 0.25)
+
+        transform = self._make_transform(
+            h - radius - margin,
+            h + radius + margin,
+            k - radius - margin,
+            k + radius + margin,
         )
 
-        GridDrawer.draw_grid(self.canvas, transform, grid_spacing=1,
-                             grid_color=self.theme.border, axis_color=self.theme.gray)
-        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=1)
+        self._draw_base(transform, spacing=1)
 
-        # Graficar circunferencia parametricamente
-        num_points = 200
-        points = []
-        for i in range(num_points + 1):
-            angle = (i / num_points) * 2 * _PI
-            x_math = h + radius * _cos(angle)
-            y_math = k + radius * _sin(angle)
+        num_points = 260
+        previous = None
+
+        for index in range(num_points + 1):
+            angle = (index / num_points) * 2 * PI
+
+            x_math = h + radius * cos_taylor(angle)
+            y_math = k + radius * sin_taylor(angle)
+
             x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
-            if points:
+
+            if previous is not None:
                 self.canvas.create_line(
-                    points[-1][0], points[-1][1], x_canvas, y_canvas,
-                    fill=self.theme.accent, width=2, tags="conic"
+                    previous[0],
+                    previous[1],
+                    x_canvas,
+                    y_canvas,
+                    fill=self.theme.accent,
+                    width=2,
+                    tags="conic",
                 )
-            points.append((x_canvas, y_canvas))
 
-        # Centro
-        ShapeDrawer.draw_point(self.canvas, transform, h, k,
-                               self.theme.accent2, size=4, label="C", theme=self.theme)
+            previous = (x_canvas, y_canvas)
 
-        # Radio (línea desde centro a punto de la circunferencia)
-        x_end = h + radius
-        y_end = k
-        x_canvas, y_canvas = transform.math_to_canvas(x_end, y_end)
-        origin_x, origin_y = transform.math_to_canvas(h, k)
-        self.canvas.create_line(origin_x, origin_y, x_canvas, y_canvas,
-                                fill=self.theme.gray, width=1, dash=(2, 2), tags="conic")
-        ShapeDrawer.draw_point(self.canvas, transform, x_end, y_end,
-                               self.theme.green, size=3, label="P", theme=self.theme)
+        return transform
+
+    # ── Elipse ─────────────────────────────────────────────────────────────
+
+    def plot_ellipse(self, a, b, h, k, rotation=0, major_axis=None):
+        """
+        Grafica la curva de una elipse.
+
+        Compatibilidad:
+            major_axis == "horizontal":
+                a se interpreta como semieje mayor horizontal.
+                b se interpreta como semieje menor vertical.
+
+            major_axis == "vertical":
+                a se interpreta como semieje mayor vertical.
+                b se interpreta como semieje menor horizontal.
+
+            major_axis == None:
+                a se interpreta como radio en x.
+                b se interpreta como radio en y.
+        """
+        self.clear_plot()
+
+        a = abs_value(a)
+        b = abs_value(b)
+
+        if a <= 0 or b <= 0:
+            self._draw_message(
+                "No se puede graficar la elipse: semiejes no positivos."
+            )
+            return None
+
+        if major_axis == "vertical":
+            x_radius = b
+            y_radius = a
+        else:
+            x_radius = a
+            y_radius = b
+
+        margin = 2
+
+        transform = self._make_transform(
+            h - x_radius - margin,
+            h + x_radius + margin,
+            k - y_radius - margin,
+            k + y_radius + margin,
+        )
+
+        self._draw_base(transform, spacing=1)
+
+        num_points = 260
+        previous = None
+
+        for index in range(num_points + 1):
+            angle = (index / num_points) * 2 * PI
+
+            x_math = h + x_radius * cos_taylor(angle)
+            y_math = k + y_radius * sin_taylor(angle)
+
+            x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+
+            if previous is not None:
+                self.canvas.create_line(
+                    previous[0],
+                    previous[1],
+                    x_canvas,
+                    y_canvas,
+                    fill=self.theme.accent,
+                    width=2,
+                    tags="conic",
+                )
+
+            previous = (x_canvas, y_canvas)
+
+        return transform
+
+    # ── Hipérbola ──────────────────────────────────────────────────────────
+
+    def plot_hyperbola(self, a, b, h, k, orientation="horizontal"):
+        """
+        Grafica las ramas de una hipérbola.
+
+        Horizontal:
+            (x−h)²/a² − (y−k)²/b² = 1
+
+        Vertical:
+            (y−k)²/a² − (x−h)²/b² = 1
+        """
+        self.clear_plot()
+
+        a = abs_value(a)
+        b = abs_value(b)
+
+        if a <= 0 or b <= 0:
+            self._draw_message(
+                "No se puede graficar la hipérbola: semiejes no positivos."
+            )
+            return None
+
+        margin = 2
+        span_x = max(a * 4, b * 4, 6)
+        span_y = max(a * 4, b * 4, 6)
+
+        transform = self._make_transform(
+            h - span_x - margin,
+            h + span_x + margin,
+            k - span_y - margin,
+            k + span_y + margin,
+        )
+
+        self._draw_base(transform, spacing=1)
+
+        if orientation == "vertical":
+            self._plot_hyperbola_vertical(transform, a, b, h, k)
+        else:
+            self._plot_hyperbola_horizontal(transform, a, b, h, k)
+
+        return transform
+
+    def _plot_hyperbola_horizontal(self, transform, a, b, h, k):
+        """
+        Dibuja:
+            (x−h)²/a² − (y−k)²/b² = 1
+
+        Despeje:
+            x = h ± a√(1 + ((y−k)²/b²))
+        """
+        y_min = transform.math_ymin
+        y_max = transform.math_ymax
+        num_points = 280
+
+        for side in (1, -1):
+            previous = None
+
+            for index in range(num_points + 1):
+                y_math = y_min + (index / num_points) * (y_max - y_min)
+                inside = 1 + ((y_math - k) / b) ** 2
+                x_math = h + side * a * sqrt_newton(inside)
+
+                x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+
+                if previous is not None:
+                    self.canvas.create_line(
+                        previous[0],
+                        previous[1],
+                        x_canvas,
+                        y_canvas,
+                        fill=self.theme.accent,
+                        width=2,
+                        tags="conic",
+                    )
+
+                previous = (x_canvas, y_canvas)
+
+    def _plot_hyperbola_vertical(self, transform, a, b, h, k):
+        """
+        Dibuja:
+            (y−k)²/a² − (x−h)²/b² = 1
+
+        Despeje:
+            y = k ± a√(1 + ((x−h)²/b²))
+        """
+        x_min = transform.math_xmin
+        x_max = transform.math_xmax
+        num_points = 280
+
+        for side in (1, -1):
+            previous = None
+
+            for index in range(num_points + 1):
+                x_math = x_min + (index / num_points) * (x_max - x_min)
+                inside = 1 + ((x_math - h) / b) ** 2
+                y_math = k + side * a * sqrt_newton(inside)
+
+                x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+
+                if previous is not None:
+                    self.canvas.create_line(
+                        previous[0],
+                        previous[1],
+                        x_canvas,
+                        y_canvas,
+                        fill=self.theme.accent,
+                        width=2,
+                        tags="conic",
+                    )
+
+                previous = (x_canvas, y_canvas)
+
+    # ── Parábola ───────────────────────────────────────────────────────────
+
+    def plot_parabola(self, p, h, k, orientation="vertical"):
+        """
+        Grafica la curva de una parábola.
+
+        Vertical:
+            (x−h)² = 4p(y−k)
+
+        Horizontal:
+            (y−k)² = 4p(x−h)
+        """
+        self.clear_plot()
+
+        if p == 0:
+            self._draw_message("No se puede graficar la parábola: p = 0.")
+            return None
+
+        p_abs = abs_value(p)
+        span = max(4 * p_abs, 5)
+
+        transform = self._make_transform(
+            h - span,
+            h + span,
+            k - span,
+            k + span,
+        )
+
+        self._draw_base(transform, spacing=1)
+
+        if orientation == "horizontal":
+            self._plot_parabola_horizontal(transform, p, h, k, span)
+        else:
+            self._plot_parabola_vertical(transform, p, h, k, span)
+
+        return transform
+
+    def _plot_parabola_vertical(self, transform, p, h, k, span):
+        """
+        Dibuja:
+            (x−h)² = 4p(y−k)
+
+        Despeje:
+            y = k + (x−h)²/(4p)
+        """
+        num_points = 260
+        previous = None
+
+        for index in range(num_points + 1):
+            x_math = h - span + (index / num_points) * (2 * span)
+            y_math = k + (x_math - h) ** 2 / (4 * p)
+
+            x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+
+            if previous is not None:
+                self.canvas.create_line(
+                    previous[0],
+                    previous[1],
+                    x_canvas,
+                    y_canvas,
+                    fill=self.theme.accent,
+                    width=2,
+                    tags="conic",
+                )
+
+            previous = (x_canvas, y_canvas)
+
+    def _plot_parabola_horizontal(self, transform, p, h, k, span):
+        """
+        Dibuja:
+            (y−k)² = 4p(x−h)
+
+        Despeje:
+            x = h + (y−k)²/(4p)
+        """
+        num_points = 260
+        previous = None
+
+        for index in range(num_points + 1):
+            y_math = k - span + (index / num_points) * (2 * span)
+            x_math = h + (y_math - k) ** 2 / (4 * p)
+
+            x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
+
+            if previous is not None:
+                self.canvas.create_line(
+                    previous[0],
+                    previous[1],
+                    x_canvas,
+                    y_canvas,
+                    fill=self.theme.accent,
+                    width=2,
+                    tags="conic",
+                )
+
+            previous = (x_canvas, y_canvas)
