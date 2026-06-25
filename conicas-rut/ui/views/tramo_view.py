@@ -24,7 +24,6 @@ class TramoView(tk.Frame):
         self.theme = theme
         self._datos = None
         self._analisis = None
-        self._plotter  = None
         self._build()
 
     # ── Construcción UI ────────────────────────────────────────────────────
@@ -189,9 +188,14 @@ class TramoView(tk.Frame):
             values = [(format_value(item["x"]), t.gray), (y_text, y_color), (item["lado"], t.gray)]
 
             for col, (text, color) in enumerate(values):
+                self._label(self._table_card, text, bg, color, t.fonts["mono_sm"], anchor="center").grid(row=current_row, column=col, sticky="ew", padx=4, pady=2)
+
+            current_row += 1
+
     # ── Gráfico ────────────────────────────────────────────────────────────
 
     def _render_graph(self):
+        if not self._datos:
             return
 
         canvas = self.graph_panel.canvas
