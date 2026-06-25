@@ -1,46 +1,52 @@
-"""
-main.py - Módulo de inicialización y utilidades de la aplicación CónicasRUT.
+# conicas-rut/main.py
 
-Este módulo centraliza funciones de inicialización y configuración global
-que son requeridas por la aplicación, tales como:
-- Configuración del DPI en Windows
-- Inicialización de temas y colores
-- Configuración del path del proyecto
-- Preparación del entorno
-
-Para iniciar la aplicación, ejecutar: python ui/app.py o python -m ui.app
 """
-import sys
+Módulo de inicialización global de CónicasRUT.
+
+Responsabilidades:
+- Configurar DPI awareness en Windows.
+- Asegurar que la raíz del proyecto esté en sys.path.
+"""
+
 import os
+import sys
 
 
-# ── Configuración del DPI en Windows ───────────────────────────────────────────
 def setup_dpi_awareness():
     """
-    Configura la conciencia de DPI en Windows para evitar el efecto "zoom"
-    en pantallas de alta resolución.
+    Configura la conciencia de DPI en Windows.
+
+    Esto ayuda a evitar que Tkinter se vea borroso o escalado incorrectamente
+    en pantallas con alta resolución.
     """
-    if sys.platform == "win32":
-        try:
-            from ctypes import windll
-            windll.shcore.SetProcessDpiAwareness(1)
-        except Exception:
-            pass
+    if sys.platform != "win32":
+        return
+
+    try:
+        from ctypes import windll
+
+        windll.shcore.SetProcessDpiAwareness(1)
+
+    except Exception:
+        pass
 
 
-# ── Configuración del path del proyecto ────────────────────────────────────────
 def setup_project_path():
     """
-    Agrega la ruta del proyecto al sys.path para permitir imports correctos.
-    Se ejecuta automáticamente al importar este módulo.
+    Agrega la raíz del proyecto al sys.path para permitir imports absolutos.
     """
     project_root = os.path.dirname(os.path.abspath(__file__))
+
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
 
 
-# ── Inicialización automática ──────────────────────────────────────────────────
-# Se ejecutan automáticamente al importar el módulo
-setup_dpi_awareness()
-setup_project_path()
+def initialize_environment():
+    """
+    Ejecuta la configuración global necesaria para la aplicación.
+    """
+    setup_dpi_awareness()
+    setup_project_path()
 
+
+initialize_environment()

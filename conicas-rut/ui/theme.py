@@ -3,7 +3,6 @@
 import tkinter.font as tkfont
 
 
-# ── Paleta de colores ─────────────────────────────────────────────────────────
 COLORS = {
     "BG": "#0F0E17",
     "PANEL": "#1A1928",
@@ -20,58 +19,57 @@ COLORS = {
 }
 
 
-# ── Fuentes ──────────────────────────────────────────────────────────────────
-# Se crean después de iniciar tkinter para evitar errores.
 def _make_fonts():
+    """
+    Crea las fuentes usadas por la interfaz.
+
+    Debe ejecutarse después de crear la instancia principal de Tk.
+    """
     return {
         "title": tkfont.Font(
             family="Courier New",
             size=18,
-            weight="bold"
+            weight="bold",
         ),
-
         "head": tkfont.Font(
             family="Courier New",
             size=13,
-            weight="bold"
+            weight="bold",
         ),
-
         "label": tkfont.Font(
             family="Courier New",
-            size=10
+            size=10,
         ),
-
         "small": tkfont.Font(
             family="Courier New",
-            size=9
+            size=9,
         ),
-
         "mono": tkfont.Font(
             family="Courier New",
-            size=11
+            size=11,
         ),
-
         "mono_sm": tkfont.Font(
             family="Courier New",
-            size=9
+            size=9,
         ),
-
         "big": tkfont.Font(
             family="Courier New",
             size=22,
-            weight="bold"
+            weight="bold",
+        ),
+        "body": tkfont.Font(
+            family="Courier New",
+            size=10,
         ),
     }
 
 
-# Cache global de fuentes
 FONTS = None
 
 
 def get_fonts():
     """
-    Retorna el diccionario de fuentes.
-    Debe llamarse después de crear tk.Tk().
+    Retorna el diccionario global de fuentes.
     """
     global FONTS
 
@@ -81,7 +79,6 @@ def get_fonts():
     return FONTS
 
 
-# ── Estado del tema ──────────────────────────────────────────────────────────
 class ThemeState:
     """
     Contenedor del estado visual actual de la aplicación.
@@ -90,10 +87,13 @@ class ThemeState:
     def __init__(self, colors=None, fonts=None, name="dark"):
         self.name = name
         self.fonts = fonts or get_fonts()
+        self.colors = {}
 
         self.update(colors or COLORS)
 
     def update(self, colors):
+        self.colors = dict(colors)
+
         self.bg = colors["BG"]
         self.panel = colors["PANEL"]
         self.card = colors["CARD"]

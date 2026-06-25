@@ -294,24 +294,18 @@ elif conic_type == "parabola":
 
 imprimir_separador("ANÁLISIS DE DISCONTINUIDAD Y LÍMITES")
 
-limites_resultado = AnalizarLimites(rut)
+limites_resultado = AnalizarLimites(validation_data)
 
-if not limites_resultado["valid"]:
-    imprimir_error(limites_resultado)
-    exit()
-
-imprimir_pasos(limites_resultado.get("steps", []))
-
-datos_limites = limites_resultado["data"]
+imprimir_pasos(limites_resultado.get("desarrollo_algebraico", []))
 
 print(f"\n✓ Análisis completado")
-print(f"  Punto crítico (a): {datos_limites['a']}")
-print(f"  Valor en el punto: {datos_limites['valor_en_punto']}")
-print(f"  Límite existe: {'Sí' if datos_limites['limite_existe'] else 'No'}")
-print(f"  Es continua: {'Sí' if datos_limites['es_continua'] else 'No'}")
+print(f"  Punto crítico (a): {limites_resultado['a']}")
+print(f"  Valor en el punto: {limites_resultado['valor_en_punto']}")
+print(f"  Límite existe: {'Sí' if limites_resultado['limite_existe'] else 'No'}")
+print(f"  Es continua: {'Sí' if limites_resultado['es_continua'] else 'No'}")
 
 print(f"\n  Resumen:")
-print(f"  {limites_resultado['explanation']}")
+print(f"  {limites_resultado['conclusion_limite']}")
 
 print("\n✓ Todas las etapas fueron ejecutadas correctamente.")
 
