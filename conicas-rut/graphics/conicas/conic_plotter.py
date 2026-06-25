@@ -92,15 +92,13 @@ class ConicPlotter:
 
     # ── Circunferencia ─────────────────────────────────────────────────────
 
-    def plot_circle(self, radius, h, k):
+    def plot_circle(self, radius, h, k, clear=True, dash=None, tag="conic"):
         """
         Grafica la curva de una circunferencia.
 
         Forma canónica:
             (x−h)² + (y−k)² = r²
         """
-        self.clear_plot()
-
         radius = abs_value(radius)
 
         if radius <= 0:
@@ -109,16 +107,25 @@ class ConicPlotter:
             )
             return None
 
-        margin = max(1, radius * 0.25)
+        # If overlaying an attempted curve, reuse existing transform and
+        # avoid redrawing the grid/axes. Otherwise create a new transform
+        # and draw the base.
+        if clear or self.last_transform is None:
+            if clear:
+                self.clear_plot()
 
-        transform = self._make_transform(
-            h - radius - margin,
-            h + radius + margin,
-            k - radius - margin,
-            k + radius + margin,
-        )
+            margin = max(1, radius * 0.25)
 
-        self._draw_base(transform)
+            transform = self._make_transform(
+                h - radius - margin,
+                h + radius + margin,
+                k - radius - margin,
+                k + radius + margin,
+            )
+
+            self._draw_base(transform)
+        else:
+            transform = self.last_transform
 
         num_points = 260
         previous = None
@@ -139,7 +146,8 @@ class ConicPlotter:
                     y_canvas,
                     fill=self.theme.accent,
                     width=2,
-                    tags="conic",
+                    dash=dash,
+                    tags=(tag,),
                 )
 
             previous = (x_canvas, y_canvas)
@@ -148,7 +156,7 @@ class ConicPlotter:
 
     # ── Elipse ─────────────────────────────────────────────────────────────
 
-    def plot_ellipse(self, a, b, h, k, rotation=0, major_axis=None):
+    def plot_ellipse(self, a, b, h, k, rotation=0, major_axis=None, clear=True, dash=None, tag="conic"):
         """
         Grafica la curva de una elipse.
 
@@ -165,8 +173,6 @@ class ConicPlotter:
                 a se interpreta como radio en x.
                 b se interpreta como radio en y.
         """
-        self.clear_plot()
-
         a = abs_value(a)
         b = abs_value(b)
 
@@ -176,23 +182,29 @@ class ConicPlotter:
             )
             return None
 
-        if major_axis == "vertical":
-            x_radius = b
-            y_radius = a
+        if clear or self.last_transform is None:
+            if clear:
+                self.clear_plot()
+
+            if major_axis == "vertical":
+                x_radius = b
+                y_radius = a
+            else:
+                x_radius = a
+                y_radius = b
+
+            margin = 2
+
+            transform = self._make_transform(
+                h - x_radius - margin,
+                h + x_radius + margin,
+                k - y_radius - margin,
+                k + y_radius + margin,
+            )
+
+            self._draw_base(transform)
         else:
-            x_radius = a
-            y_radius = b
-
-        margin = 2
-
-        transform = self._make_transform(
-            h - x_radius - margin,
-            h + x_radius + margin,
-            k - y_radius - margin,
-            k + y_radius + margin,
-        )
-
-        self._draw_base(transform)
+            transform = self.last_transform
 
         num_points = 260
         previous = None
@@ -213,7 +225,8 @@ class ConicPlotter:
                     y_canvas,
                     fill=self.theme.accent,
                     width=2,
-                    tags="conic",
+                    dash=dash,
+                    tags=(tag,),
                 )
 
             previous = (x_canvas, y_canvas)
@@ -222,7 +235,7 @@ class ConicPlotter:
 
     # ── Hipérbola ──────────────────────────────────────────────────────────
 
-    def plot_hyperbola(self, a, b, h, k, orientation="horizontal"):
+    def plot_hyperbola(self, a, b, h, k, orientation="horizontal", clear=True, dash=None, tag="conic"):
         """
         Grafica las ramas de una hipérbola.
 
@@ -232,8 +245,6 @@ class ConicPlotter:
         Vertical:
             (y−k)²/a² − (x−h)²/b² = 1
         """
-        self.clear_plot()
-
         a = abs_value(a)
         b = abs_value(b)
 
@@ -247,23 +258,26 @@ class ConicPlotter:
         span_x = max(a * 4, b * 4, 6)
         span_y = max(a * 4, b * 4, 6)
 
-        transform = self._make_transform(
-            h - span_x - margin,
-            h + span_x + margin,
-            k - span_y - margin,
-            k + span_y + margin,
-        )
+        if clear or self.last_transform is None:
+            transform = self._make_transform(
+                h - span_x - margin,
+                h + span_x + margin,
+                k - span_y - margin,
+                k + span_y + margin,
+            )
 
-        self._draw_base(transform)
+            self._draw_base(transform)
+        else:
+            transform = self.last_transform
 
         if orientation == "vertical":
-            self._plot_hyperbola_vertical(transform, a, b, h, k)
+            self._plot_hyperbola_vertical(transform, a, b, h, k, dash=dash, tag=tag)
         else:
-            self._plot_hyperbola_horizontal(transform, a, b, h, k)
+            self._plot_hyperbola_horizontal(transform, a, b, h, k, dash=dash, tag=tag)
 
         return transform
 
-    def _plot_hyperbola_horizontal(self, transform, a, b, h, k):
+    def _plot_hyperbola_horizontal(self, transform, a, b, h, k, dash=None, tag="conic"):
         """
         Dibuja:
             (x−h)²/a² − (y−k)²/b² = 1
@@ -293,12 +307,13 @@ class ConicPlotter:
                         y_canvas,
                         fill=self.theme.accent,
                         width=2,
-                        tags="conic",
+                        dash=dash,
+                        tags=(tag,),
                     )
 
                 previous = (x_canvas, y_canvas)
 
-    def _plot_hyperbola_vertical(self, transform, a, b, h, k):
+    def _plot_hyperbola_vertical(self, transform, a, b, h, k, dash=None, tag="conic"):
         """
         Dibuja:
             (y−k)²/a² − (x−h)²/b² = 1
@@ -328,14 +343,15 @@ class ConicPlotter:
                         y_canvas,
                         fill=self.theme.accent,
                         width=2,
-                        tags="conic",
+                        dash=dash,
+                        tags=(tag,),
                     )
 
                 previous = (x_canvas, y_canvas)
 
     # ── Parábola ───────────────────────────────────────────────────────────
 
-    def plot_parabola(self, p, h, k, orientation="vertical"):
+    def plot_parabola(self, p, h, k, orientation="vertical", clear=True, dash=None, tag="conic"):
         """
         Grafica la curva de una parábola.
 
@@ -345,32 +361,41 @@ class ConicPlotter:
         Horizontal:
             (y−k)² = 4p(x−h)
         """
-        self.clear_plot()
+        # For overlay attempts reuse axes when available
+        if clear or self.last_transform is None:
+            if clear:
+                self.clear_plot()
 
-        if p == 0:
-            self._draw_message("No se puede graficar la parábola: p = 0.")
-            return None
+            if p == 0:
+                self._draw_message("No se puede graficar la parábola: p = 0.")
+                return None
 
-        p_abs = abs_value(p)
-        span = max(4 * p_abs, 5)
+            p_abs = abs_value(p)
+            span = max(4 * p_abs, 5)
 
-        transform = self._make_transform(
-            h - span,
-            h + span,
-            k - span,
-            k + span,
-        )
+            transform = self._make_transform(
+                h - span,
+                h + span,
+                k - span,
+                k + span,
+            )
 
-        self._draw_base(transform)
+            self._draw_base(transform)
+        else:
+            transform = self.last_transform
+
+            if p == 0:
+                self._draw_message("No se puede graficar la parábola: p = 0.")
+                return None
 
         if orientation == "horizontal":
-            self._plot_parabola_horizontal(transform, p, h, k, span)
+            self._plot_parabola_horizontal(transform, p, h, k, span, dash=dash, tag=tag)
         else:
-            self._plot_parabola_vertical(transform, p, h, k, span)
+            self._plot_parabola_vertical(transform, p, h, k, span, dash=dash, tag=tag)
 
         return transform
 
-    def _plot_parabola_vertical(self, transform, p, h, k, span):
+    def _plot_parabola_vertical(self, transform, p, h, k, span, dash=None, tag="conic"):
         """
         Dibuja:
             (x−h)² = 4p(y−k)
@@ -395,12 +420,13 @@ class ConicPlotter:
                     y_canvas,
                     fill=self.theme.accent,
                     width=2,
-                    tags="conic",
+                    dash=dash,
+                    tags=(tag,),
                 )
 
             previous = (x_canvas, y_canvas)
 
-    def _plot_parabola_horizontal(self, transform, p, h, k, span):
+    def _plot_parabola_horizontal(self, transform, p, h, k, span, dash=None, tag="conic"):
         """
         Dibuja:
             (y−k)² = 4p(x−h)
@@ -425,7 +451,8 @@ class ConicPlotter:
                     y_canvas,
                     fill=self.theme.accent,
                     width=2,
-                    tags="conic",
+                    dash=dash,
+                    tags=(tag,),
                 )
 
             previous = (x_canvas, y_canvas)
