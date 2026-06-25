@@ -9,7 +9,7 @@ import main  # noqa: F401
 import tkinter as tk
 
 from ui.components.input_panel import InputPanel
-from core.rut_validator import validate_rut
+from core.utils.rut_validator import validate_rut
 from ui.theme import COLORS, ThemeState, get_fonts
 
 
@@ -158,7 +158,7 @@ class App(tk.Tk):
     def _launch_main(self):
         from ui.views.conic_view import ConicView
         from ui.views.tramo_view import TramoView
-        from core.conic_pipeline import run_pipeline
+        from core.conicas.conic_pipeline import run_pipeline
 
         if hasattr(self, "_root_frame"):
             self._root_frame.destroy()
