@@ -1,16 +1,13 @@
 # conicas-rut/core/conicas/conic_classifier.py
 
-"""
-Clasificación de cónicas a partir de los coeficientes de la ecuación general:
+#Clasificación de cónicas a partir de los coeficientes de la ecuación general:
 
-Ax² + By² + Cx + Dy + E = 0
-
-Reglas:
-- Parábola: exactamente uno entre A o B es cero.
-- Circunferencia: A = B, ambos no nulos.
-- Elipse: A y B tienen el mismo signo y A ≠ B.
-- Hipérbola: A y B tienen signos opuestos.
-"""
+#Ax² + By² + Cx + Dy + E = 0
+#Reglas:
+#- Parábola: exactamente uno entre A o B es cero.
+#- Circunferencia: A = B, ambos no nulos.
+#- Elipse: A y B tienen el mismo signo y A ≠ B.
+#- Hipérbola: A y B tienen signos opuestos.
 
 from core.utils.result_models import (
     build_success,
@@ -27,7 +24,7 @@ def _fraccion_a_texto(frac: tuple[int, int]) -> str:
 
     return f"{num}/{den}"
 
-
+# Cruzamos las fracciones para saber si son iguales sin perder precision
 def _fracciones_iguales(frac_a: tuple[int, int], frac_b: tuple[int, int]) -> bool:
     a_num, a_den = frac_a
     b_num, b_den = frac_b
@@ -47,12 +44,8 @@ def _signo_fraccion(frac: tuple[int, int]) -> int:
 
     return 0
 
-
+# Clasifica la conica comparando los coeficientes A y B
 def classify_conic(coefficients: dict) -> dict:
-    """
-    Clasifica una cónica usando los coeficientes generados por build_coefficients().
-    La comparación se realiza con fracciones exactas para evitar errores de precisión.
-    """
     if not isinstance(coefficients, dict) or not coefficients.get("valid"):
         return build_error(
             error="Coeficientes inválidos: no se puede clasificar la cónica."
@@ -90,7 +83,7 @@ def classify_conic(coefficients: dict) -> dict:
         "explanation": f"A = {A_text}   B = {B_text}   C = {C}   D = {D}   E = {E}",
         "equation": equation_str,
     }]
-
+    # Si falta A o B es parabola si o si
     if A_sign == 0 or B_sign == 0:
         if A_sign == 0 and B_sign == 0:
             return build_error(
@@ -142,8 +135,8 @@ def classify_conic(coefficients: dict) -> dict:
                 "equation_str": equation_str,
             },
         )
-
-    if same_value:
+    # Si A y B son exactamente iguales es un circulo
+    if same_value: 
         steps.append({
             "title": "Comparación A vs B",
             "explanation": (
@@ -186,7 +179,7 @@ def classify_conic(coefficients: dict) -> dict:
                 "equation_str": equation_str,
             },
         )
-
+    # Si tienen mismo signo pero distinto valor es elipse
     if A_sign == B_sign:
         steps.append({
             "title": "Comparación de signos A y B",
@@ -220,7 +213,7 @@ def classify_conic(coefficients: dict) -> dict:
                 "equation_str": equation_str,
             },
         )
-
+    # Si son de distinto signo es hiperbola
     if A_sign != B_sign:
         steps.append({
             "title": "Comparación de signos A y B",

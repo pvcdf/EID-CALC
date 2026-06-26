@@ -18,12 +18,14 @@ from graphics.utils.canvas_utils import CoordinateTransform, GridDrawer
 
 
 class ConicPlotter:
+    # Esta clase hace los graficos de las curvas
     def __init__(self, canvas, theme):
         self.canvas = canvas
         self.theme = theme
         self.last_transform = None
 
     def clear_plot(self):
+        # Limpiamos todo antes de dibujar de nuevo
         """
         Limpia la curva, la grilla y elementos asociados al gráfico.
         """
@@ -54,9 +56,7 @@ class ConicPlotter:
         GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=label_spacing)
 
     def _make_transform(self, x_min, x_max, y_min, y_max):
-        """
-        Crea y guarda la transformación de coordenadas usada por el gráfico.
-        """
+        # Esto es clave pa convertir coordenadas matematicas a pixeles del canvas
         transform = CoordinateTransform(
             self.canvas.winfo_width(),
             self.canvas.winfo_height(),
@@ -153,6 +153,8 @@ class ConicPlotter:
             previous = (x_canvas, y_canvas)
 
         return transform
+    
+    #La logica para elipse y parabola es parecida pero usando despeje de y =
 
     # ── Elipse ─────────────────────────────────────────────────────────────
 
@@ -361,7 +363,7 @@ class ConicPlotter:
         Horizontal:
             (y−k)² = 4p(x−h)
         """
-        # For overlay attempts reuse axes when available
+        # Reutilizamos ejes si es posible
         if clear or self.last_transform is None:
             if clear:
                 self.clear_plot()
