@@ -128,3 +128,71 @@ class ConicElementsPlotter:
         else:
             ShapeDrawer.draw_asymptote(self.canvas, transform, y_math=k - p,
                                        color=self.theme.red, tags=line_tags)
+
+    def plot_attempt_elements(self, conic_type: str, data: dict, transform):
+        """
+        Dibuja elementos aproximados basados en los valores ingresados por el usuario
+        cuando se utiliza el botón "Graficar intento". No borra elementos reales.
+        """
+        if not data or not transform:
+            return
+
+        tags = ("attempt_elements", "element_points")
+        line_tags = ("attempt_elements", "element_lines")
+
+        # Circunferencia: centro y segmento radio hacia la derecha
+        if conic_type == "circle":
+            center = data.get("center")
+            radius = data.get("radius")
+            if center is None or radius is None:
+                return
+            h, k = center
+            ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2,
+                                   label="C", theme=self.theme, tags=tags)
+            # point on circumference to the right
+            ShapeDrawer.draw_point(self.canvas, transform, h + radius, k, self.theme.accent,
+                                   label=None, theme=self.theme, tags=tags)
+            ShapeDrawer.draw_line_segment(self.canvas, transform, h, k, h + radius, k,
+                                          color=self.theme.gray, dash=(3, 3), tags=line_tags)
+
+        # Elipse / Hipérbola: centro y un vértice representativo
+        elif conic_type in ("ellipse", "hyperbola"):
+            center = data.get("center")
+            a = data.get("a")
+            orientation = data.get("orientation") or data.get("major_axis") or "horizontal"
+            if center is None or a is None:
+                return
+            h, k = center
+            ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2,
+                                   label="C", theme=self.theme, tags=tags)
+
+            if orientation == "vertical":
+                vx, vy = h, k + a
+            else:
+                vx, vy = h + a, k
+
+            ShapeDrawer.draw_point(self.canvas, transform, vx, vy, self.theme.green,
+                                   label="V", theme=self.theme, tags=tags)
+            ShapeDrawer.draw_line_segment(self.canvas, transform, h, k, vx, vy,
+                                          color=self.theme.gray, dash=(3, 3), tags=line_tags)
+
+        # Parabola: vértice y foco (si p disponible), y línea entre ellos
+        elif conic_type == "parabola":
+            vertex = data.get("vertex")
+            p = data.get("p")
+            orientation = data.get("orientation", "vertical")
+            if vertex is None or p is None:
+                return
+            h, k = vertex
+            ShapeDrawer.draw_point(self.canvas, transform, h, k, self.theme.accent2,
+                                   label="V", theme=self.theme, tags=tags)
+
+            if orientation == "horizontal":
+                focus = (h + p, k)
+            else:
+                focus = (h, k + p)
+
+            ShapeDrawer.draw_point(self.canvas, transform, focus[0], focus[1], self.theme.green,
+                                   label="F", theme=self.theme, tags=tags)
+            ShapeDrawer.draw_line_segment(self.canvas, transform, h, k, focus[0], focus[1],
+                                          color=self.theme.gray, dash=(3, 3), tags=line_tags)

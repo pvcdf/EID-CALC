@@ -1,5 +1,6 @@
 # conicas-rut/ui/views/conic_view.py
 
+import re
 import tkinter as tk
 
 from core.conicas.conic_elements import build_conic_elements, get_ellipse_orientation
@@ -22,6 +23,8 @@ class ConicView(tk.Frame):
         self._conic_type = None
         self._active_tab = "general_canonical"
         self._elements_visible = False
+        self._attempt_data = None
+        self._attempt_error = None
 
         self._build()
         if pipeline and pipeline.get("valid"):
@@ -45,7 +48,7 @@ class ConicView(tk.Frame):
         t = self.theme
         self.left = PanelFrame(self, t, padx=12, pady=12)
         self.left.grid(row=0, column=0, sticky="nsew")
-
+        
         SectionHeader(self.left, "Coeficientes generados", t).pack(fill="x")
         self._build_coefficients_card()
         self._build_equation_card()
@@ -141,9 +144,11 @@ class ConicView(tk.Frame):
         row.pack(fill="x", pady=(6, 0))
         row.columnconfigure(0, weight=1)
         row.columnconfigure(1, weight=1)
+        row.columnconfigure(2, weight=1)
 
         self._button(row, "Mostrar elementos", self._reveal_elements).grid(row=0, column=0, sticky="ew", padx=(0, 4))
-        self._button(row, "Limpiar", self._clear_elements).grid(row=0, column=1, sticky="ew", padx=(4, 0))
+        self._button(row, "Graficar intento", self._plot_attempt).grid(row=0, column=1, sticky="ew", padx=4)
+        self._button(row, "Limpiar", self._clear_elements).grid(row=0, column=2, sticky="ew", padx=(4, 0))
 
     def _build_tab_switcher(self):
         t = self.theme
@@ -197,6 +202,8 @@ class ConicView(tk.Frame):
 
         if transform.get("valid"):
             self.elements_input.set_conic_type(self._conic_type)
+            self._attempt_data = None
+            self._attempt_error = None
             self.after(50, self._render_graph)
             return
 
@@ -211,13 +218,6 @@ class ConicView(tk.Frame):
     # ── Gráfico ────────────────────────────────────────────────────────────
 
     def _render_graph(self):
-        if not self.pipeline or not self.pipeline.get("valid"):
-            return
-
-        transform = self.pipeline.get("transform", {})
-        if not transform.get("valid"):
-            return
-
         canvas = self.graph_panel.canvas
         canvas.update_idletasks()
         if canvas.winfo_width() < 10:
@@ -225,12 +225,36 @@ class ConicView(tk.Frame):
             return
 
         self.graph_panel.clear_graph()
-        data = transform["data"]
         plotter = ConicPlotter(canvas, self.theme)
-        coordinate_transform = self._plot_curve(plotter, data)
+        actual_transform = None
 
-        if self._elements_visible and coordinate_transform:
-            ConicElementsPlotter(canvas, self.theme).plot_from_transform(self._conic_type, data, coordinate_transform)
+        if self.pipeline and self.pipeline.get("valid"):
+            transform = self.pipeline.get("transform", {})
+            if transform.get("valid"):
+                actual_transform = self._plot_curve(plotter, transform["data"])
+
+        attempt_transform = None
+        if self._attempt_data is not None:
+            attempt_transform = self._plot_attempt_curve(plotter, self._attempt_data)
+
+        if actual_transform and self._elements_visible:
+            ConicElementsPlotter(canvas, self.theme).plot_from_transform(self._conic_type, self.pipeline["transform"]["data"], actual_transform)
+
+        # draw attempt elements overlay if available
+        if attempt_transform:
+            # plot representative markers for the attempted values
+            ConicElementsPlotter(canvas, self.theme).plot_attempt_elements(self._conic_type, self._attempt_data, attempt_transform)
+        elif self._attempt_error:
+            canvas.create_text(
+                canvas.winfo_width() / 2,
+                canvas.winfo_height() - 24,
+                text=self._attempt_error,
+                fill=self.theme.red,
+                font=self.theme.fonts["small"],
+                tags="labels",
+                anchor="s",
+                justify="center",
+            )
 
     def _plot_curve(self, plotter: ConicPlotter, data: dict):
         ct = self._conic_type
@@ -257,6 +281,159 @@ class ConicView(tk.Frame):
             )
 
         return None
+
+    def _plot_attempt_curve(self, plotter: ConicPlotter, data: dict):
+        ct = self._conic_type
+        clear_flag = not (self.pipeline and self.pipeline.get("valid"))
+
+        if ct == "circle":
+            return plotter.plot_circle(radius=data["radius"], h=data["center"][0], k=data["center"][1], clear=clear_flag, dash=(4, 4), tag="attempt")
+
+        if ct == "ellipse":
+            return plotter.plot_ellipse(
+                a=data["a"], b=data["b"], h=data["center"][0], k=data["center"][1],
+                major_axis=data.get("orientation", "horizontal"), clear=clear_flag,
+                dash=(4, 4), tag="attempt",
+            )
+
+        if ct == "hyperbola":
+            return plotter.plot_hyperbola(
+                a=data["a"], b=data["b"], h=data["center"][0], k=data["center"][1],
+                orientation=data.get("orientation", "horizontal"), clear=clear_flag,
+                dash=(4, 4), tag="attempt",
+            )
+
+        if ct == "parabola":
+            return plotter.plot_parabola(
+                p=data["p"], h=data["vertex"][0], k=data["vertex"][1],
+                orientation=data.get("orientation", "vertical"), clear=clear_flag,
+                dash=(4, 4), tag="attempt",
+            )
+
+        return None
+
+    def _plot_attempt(self):
+        if not self._conic_type:
+            return
+
+        values = self.elements_input.get_values()
+        self._attempt_data, self._attempt_error = self._build_attempt_data(values)
+        self._render_graph()
+
+    def _build_attempt_data(self, values: dict):
+        conic_type = self._conic_type
+        if conic_type == "circle":
+            center = self._parse_point(values.get("centro", ""))
+            radius = self._parse_number(values.get("radio", ""))
+            if center is None:
+                return None, "Centro inválido. Usa formato (x, y)."
+            if radius is None:
+                return None, "Radio inválido. Ingresa un número."
+            return {"center": center, "radius": radius}, None
+
+        if conic_type in ("ellipse", "hyperbola"):
+            center = self._parse_point(values.get("centro", ""))
+            a = self._parse_number(values.get("a", ""))
+            b = self._parse_number(values.get("b", ""))
+            orientation = self._parse_orientation(values.get("orientacion", ""))
+            if center is None:
+                return None, "Centro inválido. Usa formato (x, y)."
+            if a is None or b is None:
+                return None, "a o b inválidos. Ingresa números válidos."
+            return {"center": center, "a": a, "b": b, "orientation": orientation}, None
+
+        if conic_type == "parabola":
+            vertex = self._parse_point(values.get("vertice", ""))
+            orientation = self._parse_orientation(values.get("orientacion", ""))
+            if vertex is None:
+                return None, "Vértice inválido. Usa formato (x, y)."
+
+            p = None
+            focus = self._parse_point(values.get("foco", ""))
+            directrix_value = self._parse_directrix(values.get("directriz", ""), orientation)
+            if focus is not None:
+                if orientation == "vertical":
+                    p = focus[1] - vertex[1]
+                else:
+                    p = focus[0] - vertex[0]
+            elif directrix_value is not None:
+                if orientation == "vertical":
+                    p = vertex[1] - directrix_value
+                else:
+                    p = vertex[0] - directrix_value
+
+            if p is None:
+                return None, "No se pudo obtener p. Ingresa foco o directriz válidos."
+            if p == 0:
+                return None, "p no puede ser 0 para graficar la parábola."
+
+            return {"vertex": vertex, "p": p, "orientation": orientation}, None
+
+        return None, "Tipo de cónica desconocido."
+
+    def _parse_number(self, text: str):
+        if not isinstance(text, str):
+            return None
+
+        value = text.strip()
+        if not value:
+            return None
+
+        try:
+            return float(value)
+        except ValueError:
+            return None
+
+    def _parse_point(self, text: str):
+        if not isinstance(text, str):
+            return None
+
+        value = text.strip()
+        if not value:
+            return None
+
+        match = re.match(r"^\s*\(?\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*,\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*\)?\s*$", value)
+        if not match:
+            return None
+
+        try:
+            x = float(match.group(1))
+            y = float(match.group(2))
+            return (x, y)
+        except ValueError:
+            return None
+
+    def _parse_orientation(self, text: str):
+        if not isinstance(text, str):
+            return "horizontal"
+
+        value = text.strip().lower()
+        if value.startswith("vert") or value == "v":
+            return "vertical"
+        if value.startswith("horiz") or value == "h":
+            return "horizontal"
+        return "horizontal"
+
+    def _parse_directrix(self, text: str, orientation: str):
+        if not isinstance(text, str):
+            return None
+
+        value = text.strip().lower()
+        if not value:
+            return None
+
+        pattern = r"^(x|y)\s*=\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)$"
+        match = re.match(pattern, value)
+        if not match:
+            return None
+
+        axis = match.group(1)
+        number = float(match.group(2))
+        if orientation == "vertical" and axis != "y":
+            return None
+        if orientation == "horizontal" and axis != "x":
+            return None
+        return number
 
     def _show_imaginary_notice(self, conic_type: str, transform_data: dict):
         t = self.theme
@@ -316,6 +493,8 @@ class ConicView(tk.Frame):
     def _clear_elements(self):
         self.elements_input.clear_values()
         self._elements_visible = False
+        self._attempt_data = None
+        self._attempt_error = None
         self._render_graph()
 
     # ── Tabs, helpers y tema ───────────────────────────────────────────────
