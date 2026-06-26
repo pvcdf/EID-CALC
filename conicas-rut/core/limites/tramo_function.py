@@ -1,6 +1,4 @@
 # conicas-rut/core/limites/tramo_function.py
-
-
 def _extraer_digitos(rut_data: dict) -> dict:
     if not isinstance(rut_data, dict):
         raise ValueError("Datos de RUT inválidos para construir la función por tramos.")
@@ -17,17 +15,6 @@ def _extraer_digitos(rut_data: dict) -> dict:
 
 
 def CrearVariables(rut_data):
-    """
-    Construye la función por tramos a partir de los dígitos del RUT.
-
-    Regla:
-        d8 mod 3 = 0 -> discontinuidad removible
-        d8 mod 3 = 1 -> discontinuidad de salto
-        d8 mod 3 = 2 -> discontinuidad infinita
-
-    Punto crítico:
-        a = d3
-    """
     digitos = _extraer_digitos(rut_data)
 
     d1 = digitos["d1"]
@@ -36,7 +23,10 @@ def CrearVariables(rut_data):
     d4 = digitos["d4"]
     d5 = digitos["d5"]
     d8 = digitos["d8"]
-
+    #Se decide si la discontinuidad es removible, salto o infinita
+    # d8 mod 3 = 0 (Removible)
+    # d8 mod 3 = 1 (De salto)
+    # d8 mod 3 = 2 (Infinita)
     a = d3
     residuo = d8 % 3
 
@@ -48,9 +38,12 @@ def CrearVariables(rut_data):
         ),
     ]
 
-    if residuo == 0:
+    if residuo == 0: #Removible
+        
         limite = a + d1
-
+        #Funcion racional (x-a)(x+d1)/x-a
+        #Forzamos el ZeroDivisionError cuando x = a para reconocer matematicamente
+        #Que la funcion original no esta definida en el punto
         expr_f1 = f"((x - {a})(x + {d1})) / (x - {a})"
         expr_f2 = f"x + {d1}  para x ≠ {a}"
 
@@ -95,7 +88,10 @@ def CrearVariables(rut_data):
             f"lím(x→{a}) f(x) = {a} + {d1} = {limite}.",
         ])
 
-    elif residuo == 1:
+    elif residuo == 1: #De salto
+        #Se construyen dos tramos con comportamientos distintos al acercarse al punto "a"
+        #Valores menores: x + d2
+        #Valores mayores: x + d4
         lim_izq = a + d2
         lim_der = a + d4
 
@@ -160,7 +156,10 @@ def CrearVariables(rut_data):
                 f"Como {lim_izq} = {lim_der}, el límite bilateral existe y vale {lim_izq}."
             )
 
-    else:
+    else: #Infinito
+        #Construimos una funcion racional en el que el denominador se anula en el punto de analisis "a"
+        #El numerador se define como d5 + 1 para evitar un numerador nulo
+        #Levantamos ZeroDivisionError cuando queremos indicar la presencia de la asintota vertical
         numerador = d5 + 1
 
         expr_f1 = f"{numerador} / (x − {a})"

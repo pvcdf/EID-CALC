@@ -2,22 +2,17 @@
 
 from core.limites.tramo_function import CrearVariables
 from core.limites.value_table import CrearTablaValores
-
+#CODIGO ESPECIALIZADO EN ANALIZAR LOS LIMITES, CLASIFICARLOS Y DEJARLOS LISTOS PARA LA INTERFAZ
 
 def _limites_algebraicos(tipo, a, digitos):
-    """
-    Calcula límites laterales algebraicamente y genera desarrollo paso a paso.
-
-    Retorna:
-        lim_izq, lim_der, desarrollo
-    """
     d1 = digitos["d1"]
     d2 = digitos["d2"]
     d4 = digitos["d4"]
     d5 = digitos["d5"]
 
     desarrollo = []
-
+    #Aqui ponemos las ecuaciones y las resolvemos para agregar en el interfaz
+    #Factorizamos, evaluamos, etc.
     if tipo == "removible":
         limite = a + d1
 
@@ -84,7 +79,6 @@ def _limites_algebraicos(tipo, a, digitos):
 
     if tipo == "infinita":
         numerador = d5 + 1
-
         lim_izq = "−∞" if numerador > 0 else "+∞"
         lim_der = "+∞" if numerador > 0 else "−∞"
 
@@ -125,10 +119,6 @@ def _limites_algebraicos(tipo, a, digitos):
 
 
 def AnalizarLimites(rut_data):
-    """
-    Analiza límites laterales, continuidad y tipo de discontinuidad
-    en el punto crítico generado desde el RUT.
-    """
     datos = CrearVariables(rut_data)
 
     funcion = datos["funcion"]
