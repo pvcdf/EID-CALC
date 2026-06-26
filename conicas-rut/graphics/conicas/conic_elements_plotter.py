@@ -1,14 +1,6 @@
 # conicas-rut/graphics/conicas/conic_elements_plotter.py
 
-"""
-Dibujo de elementos geométricos de cónicas.
-
-- centro o vértice;
-- radio de circunferencia;
-- vértices;
-- co-vértices;
-- foco y directriz de parábola.
-"""
+#Aqui dibujamos los elementos conicos, vertice, centro, etc.
 
 from graphics.utils.canvas_utils import ShapeDrawer
 
@@ -36,7 +28,7 @@ class ConicElementsPlotter:
         elif conic_type == "parabola":
             self._parabola(data, transform)
 
-    def _circle(self, data, transform):
+    def _circle(self, data, transform): #Para la circunferencia
         center = data.get("center")
         radius = data.get("radius")
 
@@ -52,7 +44,7 @@ class ConicElementsPlotter:
         ShapeDrawer.draw_line_segment(self.canvas, transform, h, k, h + radius, k,
                                       self.theme.gray, width=1, dash=(3, 3), tags=line_tags)
 
-    def _ellipse(self, data, transform):
+    def _ellipse(self, data, transform): #Para el elipse
         center = data.get("center")
         a = data.get("a")
         b = data.get("b")
@@ -82,7 +74,7 @@ class ConicElementsPlotter:
             ShapeDrawer.draw_point(self.canvas, transform, x, y, self.theme.yellow,
                                    label=label, theme=self.theme, tags=tags)
 
-    def _hyperbola(self, data, transform):
+    def _hyperbola(self, data, transform): #Para el hiperbola
         center = data.get("center")
         a = data.get("a")
 
@@ -104,7 +96,7 @@ class ConicElementsPlotter:
             ShapeDrawer.draw_point(self.canvas, transform, x, y, self.theme.green,
                                    label=label, theme=self.theme, tags=tags)
 
-    def _parabola(self, data, transform):
+    def _parabola(self, data, transform): #Para la parabola
         vertex = data.get("vertex")
         p = data.get("p")
 

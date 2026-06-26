@@ -7,12 +7,12 @@ Los elementos geométricos especiales, como focos, vértices, ejes,
 directrices y asíntotas, quedan separados
 """
 
-from core.utils.manual_math import (
+from core.utils.manual_math import ( #Como no podemos utilizar math, importamos nuestro propio codigo
     PI,
-    abs_value,
-    cos_taylor,
+    abs_value, #Valor absoluto
+    cos_taylor, #Series de Taylor
     sin_taylor,
-    sqrt_newton,
+    sqrt_newton, #Para calcular raices cuadradas usando el algoritmo Newton-Raphson
 )
 from graphics.utils.canvas_utils import CoordinateTransform, GridDrawer
 
@@ -107,9 +107,9 @@ class ConicPlotter:
             )
             return None
 
-        # If overlaying an attempted curve, reuse existing transform and
-        # avoid redrawing the grid/axes. Otherwise create a new transform
-        # and draw the base.
+        # Si sobrepone a un intento de curva, se reusa la transformacion y asi evitamos
+        # redibujar los ejes
+        # De lo contrario creamos una nueva transformacion y dibujamos la base
         if clear or self.last_transform is None:
             if clear:
                 self.clear_plot()
