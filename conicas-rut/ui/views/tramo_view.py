@@ -284,7 +284,7 @@ class TramoView(tk.Frame):
     def _populate_steps(self):
         """Carga pasos de generación y desarrollo algebraico."""
         steps = build_limit_generation_steps(self._datos, self._analisis)
-        self.step_container.set_steps(steps)
+        self.step_container.set_steps(self._steps_without_direct_results(steps))
 
     def _populate_table(self):
         """Rellena la tabla de aproximación lateral."""
@@ -404,6 +404,23 @@ class TramoView(tk.Frame):
             activebackground=t.card,
             activeforeground=t.fg,
         )
+
+    def _steps_without_direct_results(self, steps: list) -> list:
+        """
+        Las respuestas finales siguen disponibles solo en el botón
+        'Verificar respuestas'.
+        """
+        cleaned = []
+
+        for step in steps:
+            if isinstance(step, dict):
+                new_step = dict(step)
+                new_step.pop("result", None)
+                cleaned.append(new_step)
+            else:
+                cleaned.append(step)
+
+        return cleaned
 
     def update_theme(self, theme):
         """Actualiza referencias de tema en la vista y sus componentes."""

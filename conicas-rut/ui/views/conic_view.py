@@ -313,8 +313,10 @@ class ConicView(tk.Frame):
         self._canonical_label.config(text=transform_data.get("canonical_form", "—"))
 
         self.coef_steps.set_steps(pipeline["coefs"].get("steps", []))
-        self.canon_steps.set_steps(transform.get("steps", []))
-        self.general_steps.set_steps((pipeline.get("to_general") or {}).get("steps", []))
+        self.canon_steps.set_steps(self._steps_without_direct_results(transform.get("steps", [])))
+        self.general_steps.set_steps(
+            self._steps_without_direct_results((pipeline.get("to_general") or {}).get("steps", []))
+        )
 
         if transform.get("valid"):
             self.elements_input.set_conic_type(self._conic_type)
@@ -810,6 +812,23 @@ class ConicView(tk.Frame):
             activebackground=t.card,
             activeforeground=t.fg,
         )
+
+    def _steps_without_direct_results(self, steps: list) -> list:
+        """
+        Mantiene título, explicación y ecuación para que se vea el desarrollo,
+        pero evita revelar la respuesta directa en verde.
+        """
+        cleaned = []
+
+        for step in steps:
+            if isinstance(step, dict):
+                new_step = dict(step)
+                new_step.pop("result", None)
+                cleaned.append(new_step)
+            else:
+                cleaned.append(step)
+
+        return cleaned
 
     def _fmt(self, value):
         """Formatea valores numéricos para mostrarlos en etiquetas."""
