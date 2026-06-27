@@ -4,10 +4,16 @@ from core.utils.manual_math import round_value, sqrt_value, shift_text
 from core.utils.result_models import build_success, build_error
 
 
+# ── Transformación de hipérbola ────────────────────────────────────────────
+# Forma general:
+# Ax² + By² + Cx + Dy + E = 0
+#
+# Formas canónicas:
+# (x − h)²/a² − (y − k)²/b² = 1
+# (y − k)²/a² − (x − h)²/b² = 1
+
 def transform_hyperbola(A, B, C, D, E) -> dict:
-    """
-    Transforma una hipérbola desde forma general a forma canónica.
-    """
+    """Transforma una hipérbola desde forma general a forma canónica."""
     steps = []
 
     try:
@@ -47,8 +53,8 @@ def transform_hyperbola(A, B, C, D, E) -> dict:
             "equation": f"{A}x² + {B}y² + {C}x + {D}y + {E} = 0",
         })
 
-        h = -C / (2 * A)
-        k = -D / (2 * B)
+        h = -C / (2 * A)  # coordenada x del centro
+        k = -D / (2 * B)  # coordenada y del centro
 
         steps.append({
             "title": "Centro de la hipérbola",
@@ -63,7 +69,7 @@ def transform_hyperbola(A, B, C, D, E) -> dict:
             "result": f"Centro = ({round_value(h)}, {round_value(k)})",
         })
 
-        constant = A * h**2 + B * k**2 - E
+        constant = A * h**2 + B * k**2 - E  # K en A(x−h)² + B(y−k)² = K
 
         steps.append({
             "title": "Constante del lado derecho",
@@ -97,8 +103,8 @@ def transform_hyperbola(A, B, C, D, E) -> dict:
                 },
             )
 
-        x_denominator = constant / A
-        y_denominator = constant / B
+        x_denominator = constant / A  # denominador del término en x
+        y_denominator = constant / B  # denominador del término en y
 
         if x_denominator > 0 and y_denominator < 0:
             orientation = "horizontal"
@@ -139,9 +145,9 @@ def transform_hyperbola(A, B, C, D, E) -> dict:
                 },
             )
 
-        a = sqrt_value(a2)
-        b = sqrt_value(b2)
-        c = sqrt_value(a2 + b2)
+        a = sqrt_value(a2)       # semieje transversal
+        b = sqrt_value(b2)       # semieje conjugado
+        c = sqrt_value(a2 + b2)  # distancia del centro a cada foco
 
         steps.append({
             "title": "Normalización",
@@ -186,18 +192,18 @@ def transform_hyperbola(A, B, C, D, E) -> dict:
                 "C": C,
                 "D": D,
                 "E": E,
-                "center": (round_value(h), round_value(k)),
-                "h": round_value(h),
-                "k": round_value(k),
-                "constant": round_value(constant),
-                "x_denominator": round_value(x_denominator),
-                "y_denominator": round_value(y_denominator),
-                "a2": round_value(a2),
-                "b2": round_value(b2),
-                "a": round_value(a),
-                "b": round_value(b),
-                "c": round_value(c),
-                "orientation": orientation,
+                "center": (round_value(h), round_value(k)),          # centro (h, k)
+                "h": round_value(h),                                 # desplazamiento horizontal
+                "k": round_value(k),                                 # desplazamiento vertical
+                "constant": round_value(constant),                   # K
+                "x_denominator": round_value(x_denominator),         # denominador en x
+                "y_denominator": round_value(y_denominator),         # denominador en y
+                "a2": round_value(a2),                               # a²
+                "b2": round_value(b2),                               # b²
+                "a": round_value(a),                                 # semieje transversal
+                "b": round_value(b),                                 # semieje conjugado
+                "c": round_value(c),                                 # distancia focal
+                "orientation": orientation,                          # horizontal o vertical
                 "canonical_form": canonical_form,
                 "imaginary": False,
                 "degenerate": False,

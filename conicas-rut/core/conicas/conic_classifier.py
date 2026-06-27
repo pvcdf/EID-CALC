@@ -1,17 +1,5 @@
 # conicas-rut/core/conicas/conic_classifier.py
 
-"""
-Clasificación de cónicas a partir de los coeficientes de la ecuación general:
-
-Ax² + By² + Cx + Dy + E = 0
-
-Reglas:
-- Parábola: exactamente uno entre A o B es cero.
-- Circunferencia: A = B, ambos no nulos.
-- Elipse: A y B tienen el mismo signo y A ≠ B.
-- Hipérbola: A y B tienen signos opuestos.
-"""
-
 from core.utils.result_models import (
     build_success,
     build_error,
@@ -19,7 +7,10 @@ from core.utils.result_models import (
 )
 
 
+# ── Utilidades de comparación exacta ───────────────────────────────────────
+
 def _fraccion_a_texto(frac: tuple[int, int]) -> str:
+    """Convierte una fracción a texto para mostrarla en los pasos."""
     num, den = frac
 
     if den == 1:
@@ -29,6 +20,7 @@ def _fraccion_a_texto(frac: tuple[int, int]) -> str:
 
 
 def _fracciones_iguales(frac_a: tuple[int, int], frac_b: tuple[int, int]) -> bool:
+    """Compara fracciones por producto cruzado para evitar errores decimales."""
     a_num, a_den = frac_a
     b_num, b_den = frac_b
 
@@ -36,6 +28,7 @@ def _fracciones_iguales(frac_a: tuple[int, int], frac_b: tuple[int, int]) -> boo
 
 
 def _signo_fraccion(frac: tuple[int, int]) -> int:
+    """Devuelve 1, -1 o 0 según el signo de una fracción."""
     num, den = frac
     value = num * den
 
@@ -48,11 +41,18 @@ def _signo_fraccion(frac: tuple[int, int]) -> int:
     return 0
 
 
+# ── Clasificación de cónicas ───────────────────────────────────────────────
+# Se clasifica desde la ecuación general:
+# Ax² + By² + Cx + Dy + E = 0
+#
+# Reglas usadas:
+# - Parábola: exactamente uno entre A o B es cero.
+# - Circunferencia: A = B, ambos no nulos.
+# - Elipse: A y B tienen el mismo signo y A ≠ B.
+# - Hipérbola: A y B tienen signos opuestos.
+
 def classify_conic(coefficients: dict) -> dict:
-    """
-    Clasifica una cónica usando los coeficientes generados por build_coefficients().
-    La comparación se realiza con fracciones exactas para evitar errores de precisión.
-    """
+    """Clasifica la cónica usando los coeficientes cuadráticos A y B."""
     if not isinstance(coefficients, dict) or not coefficients.get("valid"):
         return build_error(
             error="Coeficientes inválidos: no se puede clasificar la cónica."
@@ -66,8 +66,8 @@ def classify_conic(coefficients: dict) -> dict:
     D = data["D"]
     E = data["E"]
 
-    A_frac = data.get("A_frac")
-    B_frac = data.get("B_frac")
+    A_frac = data.get("A_frac")  # fracción exacta de A
+    B_frac = data.get("B_frac")  # fracción exacta de B
 
     if not A_frac or not B_frac:
         return build_error(
@@ -91,6 +91,7 @@ def classify_conic(coefficients: dict) -> dict:
         "equation": equation_str,
     }]
 
+    # Parábola: falta exactamente uno de los términos cuadráticos.
     if A_sign == 0 or B_sign == 0:
         if A_sign == 0 and B_sign == 0:
             return build_error(
@@ -143,6 +144,7 @@ def classify_conic(coefficients: dict) -> dict:
             },
         )
 
+    # Circunferencia: A y B iguales, ambos distintos de cero.
     if same_value:
         steps.append({
             "title": "Comparación A vs B",
@@ -187,6 +189,7 @@ def classify_conic(coefficients: dict) -> dict:
             },
         )
 
+    # Elipse: A y B tienen el mismo signo, pero distinto valor.
     if A_sign == B_sign:
         steps.append({
             "title": "Comparación de signos A y B",
@@ -221,6 +224,7 @@ def classify_conic(coefficients: dict) -> dict:
             },
         )
 
+    # Hipérbola: A y B tienen signos opuestos.
     if A_sign != B_sign:
         steps.append({
             "title": "Comparación de signos A y B",

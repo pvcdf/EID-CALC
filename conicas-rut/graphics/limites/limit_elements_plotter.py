@@ -1,24 +1,23 @@
 # conicas-rut/graphics/limites/limit_elements_plotter.py
 
 """
-Plotter de elementos especiales en funciones por tramos.
-
-Dibuja:
-- huecos removibles;
-- puntos abiertos y cerrados;
-- asíntotas verticales;
-- etiquetas del punto crítico.
+Dibuja elementos especiales del análisis de límites:
+huecos removibles, puntos abiertos, puntos cerrados,
+asíntotas verticales y etiquetas del punto crítico.
 """
 
 from graphics.utils.canvas_utils import ShapeDrawer
 
 
 class LimitElementsPlotter:
+    """Dibuja sobre la gráfica los elementos asociados a discontinuidades."""
+
     def __init__(self, canvas, theme):
         self.canvas = canvas
         self.theme = theme
 
     def clear_elements(self):
+        """Limpia solo elementos de límites, sin borrar la función."""
         self.canvas.delete(
             "limit_elements",
             "limit_points",
@@ -27,30 +26,28 @@ class LimitElementsPlotter:
         )
 
     def plot_from_analysis(self, datos: dict, analysis: dict, transform):
-        """
-        Dibuja elementos especiales usando los datos de CrearVariables()
-        y AnalizarLimites().
-        """
+        """Dibuja elementos especiales usando CrearVariables() y AnalizarLimites()."""
         if not datos or not analysis or not transform:
             return
 
         tipo = datos.get("tipo_discontinuidad")
-        a = datos.get("a")
+        a = datos.get("a")  # punto crítico
 
         if a is None:
             return
 
         if tipo == "removible":
             self._plot_removable(a, analysis, transform)
-
         elif tipo == "salto":
             self._plot_jump(a, analysis, transform)
-
         elif tipo == "infinita":
             self._plot_infinite(a, transform)
 
+    # ── Tipos de discontinuidad ────────────────────────────────────────────
+
     def _plot_removable(self, a, analysis, transform):
-        lim_value = analysis.get("lim_izquierdo")
+        """Dibuja el hueco de una discontinuidad removible."""
+        lim_value = analysis.get("lim_izquierdo")  # valor del límite bilateral
 
         if not self._is_numeric(lim_value):
             return
@@ -73,6 +70,7 @@ class LimitElementsPlotter:
         )
 
     def _plot_jump(self, a, analysis, transform):
+        """Dibuja punto abierto y punto cerrado en una discontinuidad de salto."""
         lim_izq = analysis.get("lim_izquierdo")
         lim_der = analysis.get("lim_derecho")
         valor = analysis.get("valor_en_punto")
@@ -86,6 +84,7 @@ class LimitElementsPlotter:
                 color=self.theme.red,
                 size=5,
             )
+
             self._draw_label(
                 transform,
                 a,
@@ -114,6 +113,7 @@ class LimitElementsPlotter:
             theme=self.theme,
             tags=("limit_elements", "limit_points"),
         )
+
         self._draw_label(
             transform,
             a,
@@ -123,6 +123,7 @@ class LimitElementsPlotter:
         )
 
     def _plot_infinite(self, a, transform):
+        """Dibuja la asíntota vertical x = a."""
         ShapeDrawer.draw_asymptote(
             self.canvas,
             transform,
@@ -138,7 +139,10 @@ class LimitElementsPlotter:
             self.theme.red,
         )
 
+    # ── Utilidades internas ────────────────────────────────────────────────
+
     def _draw_label(self, transform, x_math, y_math, text, color):
+        """Dibuja una etiqueta cerca de un punto matemático."""
         x_canvas, y_canvas = transform.math_to_canvas(x_math, y_math)
 
         self.canvas.create_text(
@@ -152,9 +156,11 @@ class LimitElementsPlotter:
         )
 
     def _is_numeric(self, value) -> bool:
+        """Verifica si un valor puede graficarse como coordenada."""
         return isinstance(value, int) or isinstance(value, float)
 
     def _fmt(self, value) -> str:
+        """Formatea números para etiquetas del gráfico."""
         if isinstance(value, float):
             rounded = round(value, 3)
 

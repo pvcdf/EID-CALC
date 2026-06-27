@@ -4,6 +4,10 @@ from core.limites.tramo_function import CrearVariables
 from core.limites.value_table import CrearTablaValores
 
 
+# ── Cálculo algebraico de límites ──────────────────────────────────────────
+# Según el tipo de discontinuidad, calcula límites laterales y genera
+# los pasos explicativos que se muestran en la interfaz.
+
 def _limites_algebraicos(tipo, a, digitos):
     """
     Calcula límites laterales algebraicamente y genera desarrollo paso a paso.
@@ -19,7 +23,7 @@ def _limites_algebraicos(tipo, a, digitos):
     desarrollo = []
 
     if tipo == "removible":
-        limite = a + d1
+        limite = a + d1  # límite luego de cancelar el factor problemático
 
         desarrollo.append({
             "title": "Expresión original",
@@ -43,8 +47,8 @@ def _limites_algebraicos(tipo, a, digitos):
         return limite, limite, desarrollo
 
     if tipo == "salto":
-        lim_izq = a + d2
-        lim_der = a + d4
+        lim_izq = a + d2  # límite lateral por la izquierda
+        lim_der = a + d4  # límite lateral por la derecha
 
         desarrollo.append({
             "title": "Tramo izquierdo",
@@ -83,8 +87,7 @@ def _limites_algebraicos(tipo, a, digitos):
         return lim_izq, lim_der, desarrollo
 
     if tipo == "infinita":
-        numerador = d5 + 1
-
+        numerador = d5 + 1  # se evita numerador cero para forzar asíntota vertical
         lim_izq = "−∞" if numerador > 0 else "+∞"
         lim_der = "+∞" if numerador > 0 else "−∞"
 
@@ -124,31 +127,31 @@ def _limites_algebraicos(tipo, a, digitos):
     return None, None, []
 
 
+# ── Análisis principal de límites y continuidad ────────────────────────────
+
 def AnalizarLimites(rut_data):
-    """
-    Analiza límites laterales, continuidad y tipo de discontinuidad
-    en el punto crítico generado desde el RUT.
-    """
+    """Calcula límites laterales, continuidad y clasificación de discontinuidad."""
     datos = CrearVariables(rut_data)
 
-    funcion = datos["funcion"]
-    a = datos["a"]
-    tipo = datos["tipo_discontinuidad"]
-    digitos = datos["digitos"]
+    funcion = datos["funcion"]                  # función evaluable
+    a = datos["a"]                              # punto crítico
+    tipo = datos["tipo_discontinuidad"]         # removible, salto o infinita
+    digitos = datos["digitos"]                  # dígitos d1...d8 usados en reglas
 
     tabla = CrearTablaValores(a, funcion)
 
     try:
-        valor_en_punto = funcion(a)
+        valor_en_punto = funcion(a)             # f(a), si está definida
 
         if isinstance(valor_en_punto, float):
             valor_en_punto = round(valor_en_punto, 6)
 
     except (ZeroDivisionError, ValueError):
-        valor_en_punto = None
+        valor_en_punto = None                   # f(a) no existe
 
     lim_izq, lim_der, desarrollo = _limites_algebraicos(tipo, a, digitos)
 
+    # Condición general: el límite bilateral existe si ambos laterales coinciden.
     if tipo == "infinita":
         limite_existe = False
         es_continua = False
@@ -168,6 +171,8 @@ def AnalizarLimites(rut_data):
     else:
         limite_existe = False
         es_continua = False
+
+    # ── Conclusiones para la interfaz ──────────────────────────────────────
 
     if tipo == "infinita":
         conclusion_limite = (
@@ -230,20 +235,20 @@ def AnalizarLimites(rut_data):
     )
 
     return {
-        "a": a,
-        "tipo": tipo,
-        "lim_izquierdo": lim_izq,
-        "lim_derecho": lim_der,
-        "limite_existe": limite_existe,
-        "valor_en_punto": valor_en_punto,
-        "es_continua": es_continua,
-        "tabla_izquierda": tabla["izquierda"],
-        "tabla_derecha": tabla["derecha"],
-        "desarrollo_algebraico": desarrollo,
+        "a": a,                                                # punto crítico
+        "tipo": tipo,                                          # tipo interno de discontinuidad
+        "lim_izquierdo": lim_izq,                              # límite por izquierda
+        "lim_derecho": lim_der,                                # límite por derecha
+        "limite_existe": limite_existe,                        # existencia del límite bilateral
+        "valor_en_punto": valor_en_punto,                      # f(a)
+        "es_continua": es_continua,                            # continuidad en x = a
+        "tabla_izquierda": tabla["izquierda"],                 # valores con x < a
+        "tabla_derecha": tabla["derecha"],                     # valores con x > a
+        "desarrollo_algebraico": desarrollo,                   # pasos matemáticos
         "pasos_preliminares": datos.get("pasos_preliminares", []),
-        "expr_f1": datos.get("expr_f1"),
-        "expr_f2": datos.get("expr_f2"),
-        "funcion_tramos": datos.get("funcion_tramos", []),
+        "expr_f1": datos.get("expr_f1"),                       # expresión del primer tramo
+        "expr_f2": datos.get("expr_f2"),                       # expresión del segundo tramo
+        "funcion_tramos": datos.get("funcion_tramos", []),     # datos para graficar
         "explicacion": datos.get("explicacion", ""),
         "conclusion_limite": conclusion_limite,
         "conclusion_continuidad": conclusion_continuidad,

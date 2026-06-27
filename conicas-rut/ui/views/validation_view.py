@@ -2,10 +2,9 @@
 
 import tkinter as tk
 
+
 class ValidationView(tk.Frame):
-    """
-    muestra el paso a pasodel algoritmo módulo 11 antes de entrar a la app principal.
-    """
+    """Muestra el paso a paso del algoritmo módulo 11 antes de entrar a la app principal."""
 
     def __init__(self, master, theme, rut_result: dict, on_continue, *args, **kwargs):
         super().__init__(master, bg=theme.bg, *args, **kwargs)
@@ -17,11 +16,14 @@ class ValidationView(tk.Frame):
     # ── Construcción ──────────────────────────────────────────────────────
 
     def _build(self):
+        """Construye la pantalla completa de validación del RUT."""
         t = self.theme
+
         self._build_topbar()
 
         body = tk.Frame(self, bg=t.bg)
         body.pack(fill="both", expand=True)
+
         body.columnconfigure(0, weight=1)
         body.columnconfigure(1, weight=5)
         body.rowconfigure(0, weight=1)
@@ -30,7 +32,9 @@ class ValidationView(tk.Frame):
         self._build_steps_panel(body)
 
     def _build_topbar(self):
+        """Construye la barra superior con nombre de app y RUT validado."""
         t = self.theme
+
         topbar = tk.Frame(self, bg=t.panel, height=56)
         topbar.pack(fill="x")
         topbar.pack_propagate(False)
@@ -38,50 +42,98 @@ class ValidationView(tk.Frame):
         logo_row = tk.Frame(topbar, bg=t.panel)
         logo_row.place(rely=0.5, anchor="w", x=24)
 
-        tk.Label(logo_row, text="◈", bg=t.panel, fg=t.accent,
-                 font=t.fonts["label"]).pack(side="left", padx=(0, 6))
-        tk.Label(logo_row, text="CónicasRUT", bg=t.panel, fg=t.fg,
-                 font=t.fonts["label"]).pack(side="left")
+        tk.Label(
+            logo_row,
+            text="◈",
+            bg=t.panel,
+            fg=t.accent,
+            font=t.fonts["label"],
+        ).pack(side="left", padx=(0, 6))
+
+        tk.Label(
+            logo_row,
+            text="CónicasRUT",
+            bg=t.panel,
+            fg=t.fg,
+            font=t.fonts["label"],
+        ).pack(side="left")
 
         rut = self.rut_result["data"]["clean_rut"]
-        tk.Label(logo_row, text=f"  ·  {rut}", bg=t.panel, fg=t.gray,
-                 font=t.fonts["small"]).pack(side="left")
+
+        tk.Label(
+            logo_row,
+            text=f"  ·  {rut}",
+            bg=t.panel,
+            fg=t.gray,
+            font=t.fonts["small"],
+        ).pack(side="left")
 
     def _build_sidebar(self, parent):
+        """Construye el panel lateral con resumen de la validación."""
         t = self.theme
+
         left = tk.Frame(parent, bg=t.panel)
         left.grid(row=0, column=0, sticky="nsew")
 
-        tk.Label(left, text="Validación", bg=t.panel, fg=t.accent,
-                 font=t.fonts["head"]).pack(anchor="w", padx=24, pady=(32, 4))
-        tk.Frame(left, bg=t.accent, height=2).pack(fill="x", padx=24, pady=(0, 20))
+        tk.Label(
+            left,
+            text="Validación",
+            bg=t.panel,
+            fg=t.accent,
+            font=t.fonts["head"],
+        ).pack(anchor="w", padx=24, pady=(32, 4))
+
+        tk.Frame(left, bg=t.accent, height=2).pack(
+            fill="x",
+            padx=24,
+            pady=(0, 20),
+        )
 
         rut = self.rut_result["data"]["clean_rut"]
-        v   = self.rut_result["data"]["v"]
+        v = self.rut_result["data"]["v"]
         exp = self.rut_result["explanation"]
 
-        self._info_card(left, "RUT ingresado",      rut,  t.accent, t.fonts["head"])
+        self._info_card(left, "RUT ingresado", rut, t.accent, t.fonts["head"])
         self._info_card(left, "Variable auxiliar v", str(v), t.accent2, t.fonts["big"])
-        self._info_card(left, "Resultado",           exp,  t.green,  t.fonts["label"],
-                        wrap=200)
-
+        self._info_card(
+            left,
+            "Resultado",
+            exp,
+            t.green,
+            t.fonts["label"],
+            wrap=200,
+        )
 
         tk.Frame(left, bg=t.panel).pack(fill="both", expand=True)
+
         btn_frame = tk.Frame(left, bg=t.panel)
         btn_frame.pack(side="bottom", fill="x", padx=16, pady=24)
+
         tk.Button(
-            btn_frame, text="Continuar  →",
-            bg=t.accent, fg=t.bg,
+            btn_frame,
+            text="Continuar  →",
+            bg=t.accent,
+            fg=t.bg,
             font=t.fonts["head"],
-            bd=0, cursor="hand2",
+            bd=0,
+            cursor="hand2",
             pady=12,
             activebackground=t.accent2,
             activeforeground=t.bg,
             command=self.on_continue,
         ).pack(fill="x")
 
-    def _info_card(self, parent, label_text, value_text, value_color, value_font,
-                   accent_color=None, wrap=None):
+    def _info_card(
+        self,
+        parent,
+        label_text,
+        value_text,
+        value_color,
+        value_font,
+        accent_color=None,
+        wrap=None,
+    ):
+        """Crea una tarjeta informativa del panel lateral."""
         t = self.theme
         color = accent_color or value_color
 
@@ -93,39 +145,62 @@ class ValidationView(tk.Frame):
         inner = tk.Frame(card, bg=t.card)
         inner.pack(side="left", fill="both", expand=True, padx=14, pady=12)
 
-        tk.Label(inner, text=label_text, bg=t.card, fg=t.gray,
-                 font=t.fonts["small"]).pack(anchor="w")
+        tk.Label(
+            inner,
+            text=label_text,
+            bg=t.card,
+            fg=t.gray,
+            font=t.fonts["small"],
+        ).pack(anchor="w")
 
         kw = {"wraplength": wrap, "justify": "left"} if wrap else {}
-        tk.Label(inner, text=value_text, bg=t.card, fg=value_color,
-                 font=value_font, **kw).pack(anchor="w", pady=(2, 0))
+
+        tk.Label(
+            inner,
+            text=value_text,
+            bg=t.card,
+            fg=value_color,
+            font=value_font,
+            **kw,
+        ).pack(anchor="w", pady=(2, 0))
 
     def _build_steps_panel(self, parent):
+        """Construye el panel con scroll para mostrar los pasos del módulo 11."""
         t = self.theme
+
         right = tk.Frame(parent, bg=t.bg)
         right.grid(row=0, column=1, sticky="nsew")
         right.rowconfigure(1, weight=1)
         right.columnconfigure(0, weight=1)
 
-        # Sub-header
         steps_data = self.rut_result.get("steps", [])
+
         subheader = tk.Frame(right, bg=t.bg)
         subheader.grid(row=0, column=0, sticky="ew", padx=32, pady=(28, 12))
-        tk.Label(subheader, text="Proceso módulo 11",
-                 bg=t.bg, fg=t.fg, font=t.fonts["head"]).pack(side="left")
-        tk.Label(subheader, text=f"{len(steps_data)} pasos",
-                 bg=t.bg, fg=t.gray,
-                 font=t.fonts["small"]).pack(side="left", padx=(12, 0), pady=(3, 0))
 
-        # Canvas con scroll
+        tk.Label(
+            subheader,
+            text="Proceso módulo 11",
+            bg=t.bg,
+            fg=t.fg,
+            font=t.fonts["head"],
+        ).pack(side="left")
+
+        tk.Label(
+            subheader,
+            text=f"{len(steps_data)} pasos",
+            bg=t.bg,
+            fg=t.gray,
+            font=t.fonts["small"],
+        ).pack(side="left", padx=(12, 0), pady=(3, 0))
+
         canvas_frame = tk.Frame(right, bg=t.bg)
         canvas_frame.grid(row=1, column=0, sticky="nsew", padx=(20, 20), pady=(0, 16))
         canvas_frame.rowconfigure(0, weight=1)
         canvas_frame.columnconfigure(0, weight=1)
 
         canvas = tk.Canvas(canvas_frame, bg=t.bg, highlightthickness=0, bd=0)
-        scrollbar = tk.Scrollbar(canvas_frame, orient="vertical",
-                                  command=canvas.yview)
+        scrollbar = tk.Scrollbar(canvas_frame, orient="vertical", command=canvas.yview)
         inner = tk.Frame(canvas, bg=t.bg)
 
         canvas.grid(row=0, column=0, sticky="nsew")
@@ -134,10 +209,14 @@ class ValidationView(tk.Frame):
 
         win_id = canvas.create_window((0, 0), window=inner, anchor="nw")
 
-        inner.bind("<Configure>",
-                   lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.bind("<Configure>",
-                    lambda e: canvas.itemconfigure(win_id, width=e.width))
+        inner.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
+        canvas.bind(
+            "<Configure>",
+            lambda e: canvas.itemconfigure(win_id, width=e.width),
+        )
 
         def _scroll(e):
             canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
@@ -148,6 +227,7 @@ class ValidationView(tk.Frame):
         self._render_steps(inner, steps_data, _scroll)
 
     def _render_steps(self, parent, steps_data, scroll_fn):
+        """Dibuja cada paso del módulo 11 en filas estructuradas."""
         t = self.theme
 
         for i, raw_step in enumerate(steps_data):
@@ -163,6 +243,7 @@ class ValidationView(tk.Frame):
 
             row = tk.Frame(parent, bg=row_bg)
             row.pack(fill="x", pady=(0, 2))
+
             row.columnconfigure(0, weight=0, minsize=44)
             row.columnconfigure(1, weight=0, minsize=260)
             row.columnconfigure(2, weight=1)
@@ -218,6 +299,7 @@ class ValidationView(tk.Frame):
                 ).pack(side="left")
 
             result = step.get("result")
+
             if result is not None and result != "":
                 tk.Label(
                     row,
@@ -278,8 +360,8 @@ class ValidationView(tk.Frame):
             for widget in self._walk_widgets(row):
                 widget.bind("<MouseWheel>", scroll_fn)
 
-
     def _walk_widgets(self, widget):
+        """Recorre recursivamente widgets hijos para enlazar el scroll."""
         yield widget
 
         for child in widget.winfo_children():

@@ -22,6 +22,8 @@ CONIC_NAMES_ES: dict[str, str] = {
 }
 
 
+# ── Nombres de cónicas ────────────────────────────────────────────────────
+
 def conic_name_es(conic_type: str | None) -> str:
     """Retorna el nombre en español del tipo de cónica."""
     if not conic_type:
@@ -30,13 +32,15 @@ def conic_name_es(conic_type: str | None) -> str:
     return CONIC_NAMES_ES.get(conic_type, conic_type)
 
 
+# ── Constructores de respuesta ────────────────────────────────────────────
+
 def build_success(
     conic_type: str | None = None,
     explanation: str | None = None,
     steps: list | None = None,
     data: dict | None = None,
 ) -> dict:
-    """Construye un resultado exitoso con estructura estándar."""
+    """Construye una respuesta exitosa con estructura estándar."""
     return {
         "valid": True,
         "error": None,
@@ -52,7 +56,7 @@ def build_error(
     steps: list | None = None,
     data: dict | None = None,
 ) -> dict:
-    """Construye un resultado de error con estructura estándar."""
+    """Construye una respuesta de error con estructura estándar."""
     return {
         "valid": False,
         "error": error,

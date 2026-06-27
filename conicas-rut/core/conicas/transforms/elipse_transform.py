@@ -4,10 +4,15 @@ from core.utils.manual_math import round_value, sqrt_value, shift_text
 from core.utils.result_models import build_success, build_error
 
 
+# ── Transformación de elipse ───────────────────────────────────────────────
+# Forma general:
+# Ax² + By² + Cx + Dy + E = 0
+#
+# Forma canónica:
+# (x − h)²/a² + (y − k)²/b² = 1
+
 def transform_ellipse(A, B, C, D, E) -> dict:
-    """
-    Transforma una elipse desde forma general a forma canónica.
-    """
+    """Transforma una elipse desde forma general a forma canónica."""
     steps = []
 
     try:
@@ -35,8 +40,8 @@ def transform_ellipse(A, B, C, D, E) -> dict:
             "equation": f"{A}x² + {B}y² + {C}x + {D}y + {E} = 0",
         })
 
-        h = -C / (2 * A)
-        k = -D / (2 * B)
+        h = -C / (2 * A)  # coordenada x del centro
+        k = -D / (2 * B)  # coordenada y del centro
 
         steps.append({
             "title": "Centro de la elipse",
@@ -51,7 +56,7 @@ def transform_ellipse(A, B, C, D, E) -> dict:
             "result": f"Centro = ({round_value(h)}, {round_value(k)})",
         })
 
-        constant = A * h**2 + B * k**2 - E
+        constant = A * h**2 + B * k**2 - E  # K en A(x−h)² + B(y−k)² = K
 
         steps.append({
             "title": "Constante del lado derecho",
@@ -66,8 +71,8 @@ def transform_ellipse(A, B, C, D, E) -> dict:
             "result": f"K = {round_value(constant)}",
         })
 
-        x_radius_squared = constant / A
-        y_radius_squared = constant / B
+        x_radius_squared = constant / A  # denominador asociado al término en x
+        y_radius_squared = constant / B  # denominador asociado al término en y
 
         canonical_form = (
             f"({shift_text('x', h)})²/{round_value(x_radius_squared)} + "
@@ -95,9 +100,9 @@ def transform_ellipse(A, B, C, D, E) -> dict:
                     "center": (round_value(h), round_value(k)),
                     "h": round_value(h),
                     "k": round_value(k),
-                    "constant": round_value(constant),
-                    "x_radius_squared": round_value(x_radius_squared),
-                    "y_radius_squared": round_value(y_radius_squared),
+                    "constant": round_value(constant),                         # K negativo
+                    "x_radius_squared": round_value(x_radius_squared),         # denominador en x
+                    "y_radius_squared": round_value(y_radius_squared),         # denominador en y
                     "a": None,
                     "b": None,
                     "c": None,
@@ -158,9 +163,9 @@ def transform_ellipse(A, B, C, D, E) -> dict:
             semi_major_squared = y_radius_squared
             semi_minor_squared = x_radius_squared
 
-        a = sqrt_value(semi_major_squared)
-        b = sqrt_value(semi_minor_squared)
-        c = sqrt_value(semi_major_squared - semi_minor_squared)
+        a = sqrt_value(semi_major_squared)                     # semieje mayor
+        b = sqrt_value(semi_minor_squared)                     # semieje menor
+        c = sqrt_value(semi_major_squared - semi_minor_squared) # distancia del centro al foco
 
         steps.append({
             "title": "Denominadores de la forma canónica",
@@ -208,21 +213,21 @@ def transform_ellipse(A, B, C, D, E) -> dict:
                 "C": C,
                 "D": D,
                 "E": E,
-                "center": (round_value(h), round_value(k)),
-                "h": round_value(h),
-                "k": round_value(k),
-                "constant": round_value(constant),
-                "x_radius_squared": round_value(x_radius_squared),
-                "y_radius_squared": round_value(y_radius_squared),
-                "semi_major_squared": round_value(semi_major_squared),
-                "semi_minor_squared": round_value(semi_minor_squared),
+                "center": (round_value(h), round_value(k)),              # centro (h, k)
+                "h": round_value(h),                                     # desplazamiento horizontal
+                "k": round_value(k),                                     # desplazamiento vertical
+                "constant": round_value(constant),                       # K
+                "x_radius_squared": round_value(x_radius_squared),       # denominador de x
+                "y_radius_squared": round_value(y_radius_squared),       # denominador de y
+                "semi_major_squared": round_value(semi_major_squared),   # a²
+                "semi_minor_squared": round_value(semi_minor_squared),   # b²
                 "a2": round_value(semi_major_squared),
                 "b2": round_value(semi_minor_squared),
-                "a": round_value(a),
-                "b": round_value(b),
-                "c": round_value(c),
+                "a": round_value(a),                                     # semieje mayor
+                "b": round_value(b),                                     # semieje menor
+                "c": round_value(c),                                     # distancia focal
                 "canonical_form": canonical_form,
-                "major_axis": major_axis,
+                "major_axis": major_axis,                                # horizontal o vertical
                 "imaginary": False,
                 "degenerate": False,
             },

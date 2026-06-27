@@ -3,11 +3,12 @@
 import re
 
 
+# ── Adaptador de pasos del RUT ────────────────────────────────────────────
+# validate_rut() genera pasos como strings simples.
+# Este módulo los convierte a diccionarios compatibles con StepContainer.
+
 def parse_rut_steps(result: dict) -> list[dict]:
-    """
-    Convierte los pasos planos generados por validate_rut() en una estructura
-    más clara para mostrarlos en la interfaz.
-    """
+    """Convierte los pasos de validación del RUT a estructura para la interfaz."""
     raw: list[str] = result.get("steps", [])
     data: dict = result.get("data", {})
     is_valid = result.get("valid", False)
@@ -17,6 +18,7 @@ def parse_rut_steps(result: dict) -> list[dict]:
     for line in raw:
         if line.startswith("RUT limpio:"):
             clean = line.split(":", 1)[-1].strip()
+
             structured.append({
                 "title": "Limpieza del RUT",
                 "explanation": (
@@ -26,7 +28,7 @@ def parse_rut_steps(result: dict) -> list[dict]:
                 "equation": f"RUT limpio → {clean}",
             })
 
-        elif line.startswith("Proceso módulo 11"):
+        elif line.startswith("Proceso módulo 11") or line.startswith("Proceso modulo 11"):
             structured.append({
                 "title": "Algoritmo módulo 11",
                 "explanation": (
@@ -37,6 +39,7 @@ def parse_rut_steps(result: dict) -> list[dict]:
 
         elif re.fullmatch(r"\d+ × \d+ = \d+", line):
             digit, multiplier, product = re.findall(r"\d+", line)
+
             structured.append({
                 "title": f"Dígito {digit}",
                 "explanation": None,
@@ -46,6 +49,7 @@ def parse_rut_steps(result: dict) -> list[dict]:
 
         elif line.startswith("Suma total"):
             total = line.split("=")[-1].strip()
+
             structured.append({
                 "title": "Suma total de productos",
                 "explanation": "Suma acumulada de todos los productos anteriores.",
@@ -55,6 +59,7 @@ def parse_rut_steps(result: dict) -> list[dict]:
 
         elif "% 11" in line:
             remainder = line.split("=")[-1].strip()
+
             structured.append({
                 "title": "Resto módulo 11",
                 "explanation": "Se calcula el resto de dividir la suma total entre 11.",
@@ -81,6 +86,7 @@ def parse_rut_steps(result: dict) -> list[dict]:
 
         elif line.startswith("DV esperado"):
             dv_expected = line.split("=")[-1].strip()
+
             structured.append({
                 "title": "DV esperado",
                 "explanation": None,

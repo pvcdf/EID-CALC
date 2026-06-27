@@ -4,10 +4,15 @@ from core.utils.manual_math import round_value, sqrt_value, shift_text
 from core.utils.result_models import build_success, build_error
 
 
+# ── Transformación de circunferencia ───────────────────────────────────────
+# Forma general:
+# Ax² + Ay² + Cx + Dy + E = 0
+#
+# Forma canónica:
+# (x − h)² + (y − k)² = r²
+
 def transform_circle(A, B, C, D, E) -> dict:
-    """
-    Transforma una circunferencia desde forma general a forma canónica.
-    """
+    """Transforma una circunferencia desde forma general a forma canónica."""
     steps = []
 
     try:
@@ -47,8 +52,8 @@ def transform_circle(A, B, C, D, E) -> dict:
             "equation": f"{A}x² + {B}y² + {C}x + {D}y + {E} = 0",
         })
 
-        h = -C / (2 * A)
-        k = -D / (2 * A)
+        h = -C / (2 * A)  # coordenada x del centro
+        k = -D / (2 * A)  # coordenada y del centro
 
         steps.append({
             "title": "Centro de la circunferencia",
@@ -63,7 +68,7 @@ def transform_circle(A, B, C, D, E) -> dict:
             "result": f"Centro = ({round_value(h)}, {round_value(k)})",
         })
 
-        radius_squared = h**2 + k**2 - (E / A)
+        radius_squared = h**2 + k**2 - (E / A)  # r² luego de completar cuadrados
 
         steps.append({
             "title": "Radio al cuadrado",
@@ -98,12 +103,12 @@ def transform_circle(A, B, C, D, E) -> dict:
                     "C": C,
                     "D": D,
                     "E": E,
-                    "center": (round_value(h), round_value(k)),
-                    "h": round_value(h),
-                    "k": round_value(k),
-                    "radius": None,
-                    "radius_squared": round_value(radius_squared),
-                    "canonical_form": canonical_form,
+                    "center": (round_value(h), round_value(k)),      # centro calculado
+                    "h": round_value(h),                             # coordenada x del centro
+                    "k": round_value(k),                             # coordenada y del centro
+                    "radius": None,                                  # sin radio real
+                    "radius_squared": round_value(radius_squared),   # r² negativo
+                    "canonical_form": canonical_form,                # forma canónica obtenida
                     "imaginary": True,
                     "degenerate": False,
                 },
@@ -157,12 +162,12 @@ def transform_circle(A, B, C, D, E) -> dict:
                 "C": C,
                 "D": D,
                 "E": E,
-                "center": (round_value(h), round_value(k)),
-                "h": round_value(h),
-                "k": round_value(k),
-                "radius": round_value(radius),
-                "radius_squared": round_value(radius_squared),
-                "canonical_form": canonical_form,
+                "center": (round_value(h), round_value(k)),      # centro (h, k)
+                "h": round_value(h),                             # desplazamiento horizontal
+                "k": round_value(k),                             # desplazamiento vertical
+                "radius": round_value(radius),                   # radio real
+                "radius_squared": round_value(radius_squared),   # radio al cuadrado
+                "canonical_form": canonical_form,                # ecuación canónica
                 "imaginary": False,
                 "degenerate": False,
             },

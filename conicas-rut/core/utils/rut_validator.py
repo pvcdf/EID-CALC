@@ -3,11 +3,10 @@
 from core.utils.result_models import build_success, build_error
 
 
+# ── Limpieza y variable auxiliar ──────────────────────────────────────────
+
 def clean_rut(rut: str) -> str:
-    """
-    Elimina puntos, guiones y espacios.
-    Convierte el dígito verificador a mayúscula.
-    """
+    """Elimina puntos, guion y espacios del RUT."""
     return (
         rut.replace(".", "")
            .replace("-", "")
@@ -18,12 +17,12 @@ def clean_rut(rut: str) -> str:
 
 def compute_v(dv: str) -> int:
     """
-    Calcula la variable auxiliar v.
+    Calcula la variable auxiliar v usada en coeficientes.
 
     Reglas:
-        v = 10 si DV = K
-        v = 11 si DV = 0
-        v = DV si DV está entre 1 y 9
+        K → 10
+        0 → 11
+        1...9 → su valor numérico
     """
     if dv == "K":
         return 10
@@ -37,29 +36,32 @@ def compute_v(dv: str) -> int:
     return -1
 
 
-def validate_rut(rut: str) -> dict:
-    """
-    Valida un RUT chileno usando el algoritmo oficial del módulo 11.
+# ── Validación módulo 11 ──────────────────────────────────────────────────
+# Proceso:
+# 1. Limpiar RUT.
+# 2. Multiplicar dígitos de derecha a izquierda por [2, 3, 4, 5, 6, 7].
+# 3. Sumar productos.
+# 4. Calcular 11 - (suma % 11).
+# 5. Comparar el DV esperado con el DV ingresado.
 
-    Además de validar, retorna los pasos usados para mostrar el procedimiento
-    en la interfaz.
-    """
+def validate_rut(rut: str) -> dict:
+    """Valida un RUT chileno usando módulo 11 y guarda los pasos del cálculo."""
     steps: list[str] = []
 
     if not rut or not isinstance(rut, str):
-        return build_error(error="RUT vacío o tipo inválido")
+        return build_error(error="RUT vacío o tipo inválido.")
 
     clean = clean_rut(rut)
     steps.append(f"RUT limpio: {clean}")
 
     if len(clean) < 2:
         return build_error(
-            error="RUT demasiado corto",
+            error="RUT demasiado corto.",
             steps=steps,
         )
 
-    body = clean[:-1]
-    dv_input = clean[-1]
+    body = clean[:-1]    # cuerpo numérico del RUT
+    dv_input = clean[-1] # dígito verificador ingresado
 
     if not (dv_input.isdigit() or dv_input == "K"):
         return build_error(
@@ -69,17 +71,17 @@ def validate_rut(rut: str) -> dict:
 
     if not body.isdigit():
         return build_error(
-            error="El cuerpo del RUT debe contener solo números.",
+            error="El cuerpo del RUT debe tener solo números.",
             steps=steps,
         )
 
     if len(body) != 8:
         return build_error(
-            error=f"El cuerpo debe tener exactamente 8 dígitos. Tiene {len(body)}.",
+            error=f"El cuerpo debe tener 8 dígitos. Tiene {len(body)}.",
             steps=steps,
         )
 
-    digits = [int(digit) for digit in body]
+    digits = [int(digit) for digit in body]  # dígitos d1...d8
 
     multipliers = [2, 3, 4, 5, 6, 7]
     total = 0
@@ -87,6 +89,7 @@ def validate_rut(rut: str) -> dict:
 
     steps.append("Proceso módulo 11:")
 
+    # Se recorre desde el último dígito hacia el primero.
     for digit in digits[::-1]:
         multiplier = multipliers[multiplier_index % len(multipliers)]
         product = digit * multiplier
@@ -134,15 +137,15 @@ def validate_rut(rut: str) -> dict:
         explanation="El RUT es válido.",
         steps=steps,
         data={
-            "clean_rut": clean,
-            "body": body,
-            "digits": digits,
-            "named_digits": {
+            "clean_rut": clean,        # RUT sin formato
+            "body": body,              # cuerpo sin DV
+            "digits": digits,          # lista de dígitos numéricos
+            "named_digits": {          # dígitos etiquetados para cónicas y límites
                 f"d{i + 1}": digits[i]
                 for i in range(8)
             },
-            "dv_input": dv_input,
-            "dv_expected": dv_expected,
-            "v": v,
+            "dv_input": dv_input,      # DV ingresado
+            "dv_expected": dv_expected,# DV calculado por módulo 11
+            "v": v,                    # variable auxiliar para coeficientes
         },
     )

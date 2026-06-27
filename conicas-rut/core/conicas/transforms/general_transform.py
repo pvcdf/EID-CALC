@@ -4,10 +4,12 @@ from core.conicas.coef_builder import ecuacion_a_texto
 from core.utils.result_models import build_success, build_error
 
 
+# ── Reconstrucción de forma general ────────────────────────────────────────
+# Documenta el camino inverso:
+# forma canónica → forma general original.
+
 def transform_to_general(conic_type: str, transform_data: dict, coef_data: dict) -> dict:
-    """
-        forma canónica → forma general original.
-    """
+    """Reconstruye o conserva la forma general desde los coeficientes originales."""
     if not isinstance(transform_data, dict):
         return build_error(
             error="Datos canónicos inválidos para reconstruir forma general."
@@ -64,13 +66,16 @@ def transform_to_general(conic_type: str, transform_data: dict, coef_data: dict)
     D = coef_data.get("D")
     E = coef_data.get("E")
 
-    A_frac = coef_data.get("A_frac")
-    B_frac = coef_data.get("B_frac")
+    A_frac = coef_data.get("A_frac")  # fracción exacta de A
+    B_frac = coef_data.get("B_frac")  # fracción exacta de B
 
     if A_frac and B_frac:
         equation = ecuacion_a_texto(A_frac, B_frac, C, D, E)
     else:
-        equation = coef_data.get("equation_str", f"{A}x² + {B}y² + {C}x + {D}y + {E} = 0")
+        equation = coef_data.get(
+            "equation_str",
+            f"{A}x² + {B}y² + {C}x + {D}y + {E} = 0",
+        )
 
     steps = [
         {
@@ -102,6 +107,6 @@ def transform_to_general(conic_type: str, transform_data: dict, coef_data: dict)
             "C": C,
             "D": D,
             "E": E,
-            "equation_str": equation,
+            "equation_str": equation,  # forma general final
         },
     )

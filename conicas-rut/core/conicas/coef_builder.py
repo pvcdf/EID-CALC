@@ -3,7 +3,10 @@
 from core.utils.result_models import build_success, build_error
 
 
+# ── Utilidades para fracciones ─────────────────────────────────────────────
+
 def maximo_comun_divisor(a: int, b: int) -> int:
+    """Calcula el MCD usando el algoritmo de Euclides."""
     a = abs(a)
     b = abs(b)
 
@@ -14,6 +17,7 @@ def maximo_comun_divisor(a: int, b: int) -> int:
 
 
 def simplificar_fraccion(numerator: int, denominator: int) -> tuple[int, int, float]:
+    """Reduce una fracción y también devuelve su valor decimal."""
     if denominator == 0:
         raise ValueError("Denominador cero al simplificar fracción.")
 
@@ -22,7 +26,6 @@ def simplificar_fraccion(numerator: int, denominator: int) -> tuple[int, int, fl
     den = abs(denominator)
 
     common = maximo_comun_divisor(num, den)
-
     num //= common
     den //= common
 
@@ -32,13 +35,17 @@ def simplificar_fraccion(numerator: int, denominator: int) -> tuple[int, int, fl
 
 
 def fraccion_a_texto(num: int, den: int) -> str:
+    """Convierte una fracción a texto para mostrarla en la interfaz."""
     if den == 1:
         return str(num)
 
     return f"{num}/{den}"
 
 
+# ── Formateo de ecuación general ───────────────────────────────────────────
+
 def _agregar_termino(terms: list[str], coefficient: int | str, variable: str = "") -> None:
+    """Agrega un término algebraico manteniendo signos limpios."""
     coef_text = str(coefficient)
 
     if coef_text.startswith("-"):
@@ -50,7 +57,14 @@ def _agregar_termino(terms: list[str], coefficient: int | str, variable: str = "
             terms.append(f"{coef_text}{variable}")
 
 
-def ecuacion_a_texto(A_frac: tuple[int, int], B_frac: tuple[int, int], C: int, D: int, E: int) -> str:
+def ecuacion_a_texto(
+    A_frac: tuple[int, int],
+    B_frac: tuple[int, int],
+    C: int,
+    D: int,
+    E: int,
+) -> str:
+    """Construye el texto de Ax² + By² + Cx + Dy + E = 0."""
     terms: list[str] = []
 
     a_num, a_den = A_frac
@@ -77,18 +91,23 @@ def ecuacion_a_texto(A_frac: tuple[int, int], B_frac: tuple[int, int], C: int, D
     return " ".join(terms) + " = 0"
 
 
+# ── Construcción de coeficientes ───────────────────────────────────────────
+# Ecuación general usada:
+# Ax² + By² + Cx + Dy + E = 0
+
 def build_coefficients(rut_data: dict) -> dict:
+    """Genera los coeficientes A, B, C, D y E desde los dígitos del RUT."""
     if not isinstance(rut_data, dict) or not rut_data.get("valid"):
         return build_error(
             error="RUT inválido: no se pueden construir coeficientes."
         )
 
-    steps: list[dict] = []
-    adjustments_applied: list[str] = []
+    steps: list[dict] = []              # pasos mostrados en la interfaz
+    adjustments_applied: list[str] = [] # reglas especiales aplicadas
 
     data = rut_data["data"]
-    nd = data["named_digits"]
-    v = data["v"]
+    nd = data["named_digits"]  # dígitos del RUT etiquetados como d1...d8
+    v = data["v"]              # valor auxiliar usado como divisor
 
     d1 = nd["d1"]
     d2 = nd["d2"]
@@ -107,6 +126,7 @@ def build_coefficients(rut_data: dict) -> dict:
         ),
     })
 
+    # Coeficientes cuadráticos: determinan el tipo principal de cónica.
     A_num, A_den, A_val = simplificar_fraccion(d1 + d2, v)
     steps.append({
         "title": "A = (d1 + d2) / v",
@@ -121,6 +141,7 @@ def build_coefficients(rut_data: dict) -> dict:
         "result": fraccion_a_texto(B_num, B_den),
     })
 
+    # Coeficientes lineales y término independiente.
     C = -(d5 + d6)
     steps.append({
         "title": "C = -(d5 + d6)",
@@ -150,6 +171,7 @@ def build_coefficients(rut_data: dict) -> dict:
         ),
     })
 
+    # Regla 1: si d8 es impar, se invierte B para permitir hipérbolas.
     if d8 % 2 != 0:
         B_num = -B_num
         B_val = -B_val
@@ -161,6 +183,7 @@ def build_coefficients(rut_data: dict) -> dict:
         "result": fraccion_a_texto(B_num, B_den) if d8 % 2 != 0 else None,
     })
 
+    # Regla 2: si A y B quedan iguales, la cónica se fuerza a circunferencia.
     if d1 == d2:
         B_num = A_num
         B_den = A_den
@@ -175,6 +198,7 @@ def build_coefficients(rut_data: dict) -> dict:
 
     suma_56 = d5 + d6
 
+    # Regla 3: si d5+d6 es múltiplo de 3, se anula A o B para generar parábola.
     if suma_56 % 3 == 0:
         if d7 % 2 == 0:
             B_num = 0
@@ -229,16 +253,16 @@ def build_coefficients(rut_data: dict) -> dict:
         explanation="Los coeficientes de la ecuación fueron generados correctamente.",
         steps=steps,
         data={
-            "A": A_val,
-            "B": B_val,
-            "C": C,
-            "D": D,
-            "E": E,
-            "A_frac": (A_num, A_den),
-            "B_frac": (B_num, B_den),
-            "adjustments": adjustments_applied,
-            "equation_str": eq_str,
-            "digits": nd,
-            "v": v,
+            "A": A_val,                         # valor decimal de A
+            "B": B_val,                         # valor decimal de B
+            "C": C,                             # coeficiente lineal de x
+            "D": D,                             # coeficiente lineal de y
+            "E": E,                             # término independiente
+            "A_frac": (A_num, A_den),           # fracción exacta de A
+            "B_frac": (B_num, B_den),           # fracción exacta de B
+            "adjustments": adjustments_applied, # reglas aplicadas
+            "equation_str": eq_str,             # ecuación general en texto
+            "digits": nd,                       # dígitos d1...d8
+            "v": v,                             # valor auxiliar del RUT
         },
     )

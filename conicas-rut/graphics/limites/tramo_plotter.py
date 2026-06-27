@@ -4,22 +4,22 @@
 Plotter principal de funciones por tramos.
 
 Los elementos especiales de límites, como huecos, puntos cerrados,
-puntos abiertos y asíntotas, quedan separados
+puntos abiertos y asíntotas, se dibujan en LimitElementsPlotter.
 """
 
 from graphics.utils.canvas_utils import CoordinateTransform, GridDrawer
 
 
 class TramoPlotter:
+    """Dibuja funciones continuas o por tramos sobre un plano cartesiano."""
+
     def __init__(self, canvas, theme):
         self.canvas = canvas
         self.theme = theme
         self.last_transform = None
 
     def clear_plot(self):
-        """
-        Limpia el gráfico completo de funciones por tramos.
-        """
+        """Limpia el gráfico completo de funciones por tramos."""
         self.canvas.delete(
             "grid",
             "axis",
@@ -35,10 +35,17 @@ class TramoPlotter:
             "shapes",
         )
 
+    # ── Base cartesiana ────────────────────────────────────────────────────
+
     def _make_transform(self, x_min, x_max, y_min, y_max):
+        """Crea la transformación entre coordenadas matemáticas y canvas."""
         transform = CoordinateTransform(
-            self.canvas.winfo_width(), self.canvas.winfo_height(),
-            x_min, x_max, y_min, y_max,
+            self.canvas.winfo_width(),
+            self.canvas.winfo_height(),
+            x_min,
+            x_max,
+            y_min,
+            y_max,
             keep_aspect=False,
         )
 
@@ -46,19 +53,24 @@ class TramoPlotter:
         return transform
 
     def _draw_base(self, transform, spacing=1):
+        """Dibuja grilla, ejes y etiquetas."""
         GridDrawer.draw_grid(
-            self.canvas, transform,
+            self.canvas,
+            transform,
             grid_spacing=spacing,
             grid_color=self.theme.border,
             axis_color=self.theme.gray,
         )
 
-        GridDrawer.draw_axis_labels(self.canvas, transform, self.theme, spacing=spacing)
+        GridDrawer.draw_axis_labels(
+            self.canvas,
+            transform,
+            self.theme,
+            spacing=spacing,
+        )
 
     def _draw_message(self, text):
-        """
-        Dibuja un mensaje centrado en el canvas.
-        """
+        """Dibuja un mensaje centrado en el canvas."""
         self.clear_plot()
 
         width = max(self.canvas.winfo_width(), 300)
@@ -86,15 +98,7 @@ class TramoPlotter:
         y_max=10,
         samples=700,
     ):
-        """
-        Dibuja una función continua aproximada en un intervalo.
-
-        Parámetros:
-            function: función que recibe x y retorna y.
-            x_min, x_max: dominio visible.
-            y_min, y_max: rango visible.
-            samples: cantidad de puntos de muestreo.
-        """
+        """Dibuja una función continua aproximada en un intervalo."""
         self.clear_plot()
 
         if not callable(function):
@@ -133,15 +137,10 @@ class TramoPlotter:
         """
         Dibuja una función por tramos.
 
-        Cada tramo debe tener:
-        {
-            "func": callable,
-            "x_min": float,
-            "x_max": float,
-        }
-
-        Puede traer otras claves, pero este plotter solo usa func, x_min y x_max.
-        Los elementos especiales se dibujan en LimitElementsPlotter.
+        Cada tramo debe incluir:
+            "func": función evaluable
+            "x_min": inicio del intervalo
+            "x_max": fin del intervalo
         """
         self.clear_plot()
 
@@ -182,6 +181,8 @@ class TramoPlotter:
 
         return transform
 
+    # ── Muestreo y dibujo ──────────────────────────────────────────────────
+
     def _draw_function_segment(
         self,
         function,
@@ -192,9 +193,9 @@ class TramoPlotter:
         tag="function",
     ):
         """
-        Dibuja un segmento de función usando muestreo.
+        Dibuja un segmento usando muestreo.
 
-        Si la función genera error, valor None o un valor fuera de rango,
+        Si aparece error, None o un valor fuera del rango visible,
         se corta el trazo para evitar líneas falsas entre ramas.
         """
         previous = None
@@ -236,16 +237,14 @@ class TramoPlotter:
 
             previous = (x_canvas, y_canvas)
 
+    # ── Validaciones internas ──────────────────────────────────────────────
+
     def _is_number(self, value) -> bool:
-        """
-        Verifica que value sea numérico simple.
-        """
+        """Verifica que el valor sea numérico."""
         return isinstance(value, int) or isinstance(value, float)
 
     def _is_visible_y(self, y_value, transform) -> bool:
-        """
-        Evita dibujar puntos extremadamente fuera del rango visible.
-        """
+        """Evita dibujar puntos demasiado alejados del rango visible."""
         margin = (transform.math_ymax - transform.math_ymin) * 0.25
 
         return (

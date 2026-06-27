@@ -4,10 +4,16 @@ from core.utils.manual_math import round_value, shift_text
 from core.utils.result_models import build_success, build_error
 
 
+# ── Transformación de parábola ─────────────────────────────────────────────
+# Forma general:
+# Ax² + By² + Cx + Dy + E = 0
+#
+# Casos:
+# B = 0 → parábola vertical:   (x − h)² = 4p(y − k)
+# A = 0 → parábola horizontal: (y − k)² = 4p(x − h)
+
 def transform_parabola(A, B, C, D, E) -> dict:
-    """
-    Transforma una parábola desde forma general a forma canónica.
-    """
+    """Transforma una parábola desde forma general a forma canónica."""
     steps = []
 
     try:
@@ -48,16 +54,15 @@ def transform_parabola(A, B, C, D, E) -> dict:
         )
 
 
+# ── Parábola vertical ──────────────────────────────────────────────────────
+# Parte desde:
+# Ax² + Cx + Dy + E = 0
+#
+# Llega a:
+# (x − h)² = 4p(y − k)
+
 def _transform_vertical_parabola(A, C, D, E, steps):
-    """
-    Caso B = 0:
-
-        Ax² + Cx + Dy + E = 0
-
-    Forma canónica:
-
-        (x−h)² = 4p(y−k)
-    """
+    """Transforma el caso B = 0, donde la parábola tiene eje vertical."""
     if D == 0:
         return build_error(
             error="Parábola vertical degenerada: D = 0.",
@@ -72,9 +77,9 @@ def _transform_vertical_parabola(A, C, D, E, steps):
             },
         )
 
-    h = -C / (2 * A)
-    k = ((C**2) / (4 * A) - E) / D
-    p = -D / (4 * A)
+    h = -C / (2 * A)                  # coordenada x del vértice
+    k = ((C**2) / (4 * A) - E) / D    # coordenada y del vértice
+    p = -D / (4 * A)                  # distancia del vértice al foco
 
     canonical_form = (
         f"({shift_text('x', h)})² = "
@@ -96,9 +101,7 @@ def _transform_vertical_parabola(A, C, D, E, steps):
 
     steps.append({
         "title": "Vértice",
-        "explanation": (
-            "Para Ax² + Cx + Dy + E = 0 se completa cuadrado en x."
-        ),
+        "explanation": "Para Ax² + Cx + Dy + E = 0 se completa cuadrado en x.",
         "equation": (
             f"h = −C/(2A) = −({C})/(2·{A}) = {round_value(h)} ; "
             f"k = (C²/(4A) − E)/D = {round_value(k)}"
@@ -142,10 +145,10 @@ def _transform_vertical_parabola(A, C, D, E, steps):
             "C": C,
             "D": D,
             "E": E,
-            "vertex": (round_value(h), round_value(k)),
-            "h": round_value(h),
-            "k": round_value(k),
-            "p": round_value(p),
+            "vertex": (round_value(h), round_value(k)),          # vértice (h, k)
+            "h": round_value(h),                                 # coordenada x del vértice
+            "k": round_value(k),                                 # coordenada y del vértice
+            "p": round_value(p),                                 # parámetro focal
             "focus": (round_value(focus[0]), round_value(focus[1])),
             "directrix": directrix,
             "axis": axis,
@@ -157,16 +160,15 @@ def _transform_vertical_parabola(A, C, D, E, steps):
     )
 
 
+# ── Parábola horizontal ────────────────────────────────────────────────────
+# Parte desde:
+# By² + Cx + Dy + E = 0
+#
+# Llega a:
+# (y − k)² = 4p(x − h)
+
 def _transform_horizontal_parabola(B, C, D, E, steps):
-    """
-    Caso A = 0:
-
-        By² + Cx + Dy + E = 0
-
-    Forma canónica:
-
-        (y−k)² = 4p(x−h)
-    """
+    """Transforma el caso A = 0, donde la parábola tiene eje horizontal."""
     if C == 0:
         return build_error(
             error="Parábola horizontal degenerada: C = 0.",
@@ -182,9 +184,9 @@ def _transform_horizontal_parabola(B, C, D, E, steps):
             },
         )
 
-    k = -D / (2 * B)
-    h = ((D**2) / (4 * B) - E) / C
-    p = -C / (4 * B)
+    k = -D / (2 * B)                  # coordenada y del vértice
+    h = ((D**2) / (4 * B) - E) / C    # coordenada x del vértice
+    p = -C / (4 * B)                  # distancia del vértice al foco
 
     canonical_form = (
         f"({shift_text('y', k)})² = "
@@ -206,9 +208,7 @@ def _transform_horizontal_parabola(B, C, D, E, steps):
 
     steps.append({
         "title": "Vértice",
-        "explanation": (
-            "Para By² + Cx + Dy + E = 0 se completa cuadrado en y."
-        ),
+        "explanation": "Para By² + Cx + Dy + E = 0 se completa cuadrado en y.",
         "equation": (
             f"k = −D/(2B) = −({D})/(2·{B}) = {round_value(k)} ; "
             f"h = (D²/(4B) − E)/C = {round_value(h)}"
@@ -252,10 +252,10 @@ def _transform_horizontal_parabola(B, C, D, E, steps):
             "C": C,
             "D": D,
             "E": E,
-            "vertex": (round_value(h), round_value(k)),
-            "h": round_value(h),
-            "k": round_value(k),
-            "p": round_value(p),
+            "vertex": (round_value(h), round_value(k)),          # vértice (h, k)
+            "h": round_value(h),                                 # coordenada x del vértice
+            "k": round_value(k),                                 # coordenada y del vértice
+            "p": round_value(p),                                 # parámetro focal
             "focus": (round_value(focus[0]), round_value(focus[1])),
             "directrix": directrix,
             "axis": axis,

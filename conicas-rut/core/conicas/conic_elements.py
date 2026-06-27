@@ -1,12 +1,15 @@
 # conicas-rut/core/conicas/conic_elements.py
 
 """
-Construcción de elementos geométricos simples de cónicas.
-
+Construye los elementos geométricos principales de cada cónica.
+Se usa después de transformar la ecuación a forma canónica.
 """
 
 
+# ── Campos esperados por tipo de cónica ────────────────────────────────────
+
 def get_conic_element_fields(conic_type: str) -> list[tuple[str, str]]:
+    """Devuelve los campos que la interfaz debe mostrar según la cónica."""
     fields = {
         "circle": [
             ("Centro", "centro"), ("Radio", "radio"),
@@ -29,7 +32,10 @@ def get_conic_element_fields(conic_type: str) -> list[tuple[str, str]]:
     return fields.get(conic_type, [])
 
 
+# ── Construcción general de elementos ──────────────────────────────────────
+
 def build_conic_elements(conic_type: str, transform_data: dict) -> dict:
+    """Construye los elementos geométricos desde los datos canónicos."""
     if not isinstance(transform_data, dict):
         return _invalid("Datos de transformación inválidos.")
 
@@ -57,10 +63,14 @@ def build_conic_elements(conic_type: str, transform_data: dict) -> dict:
 
 
 def _invalid(reason: str) -> dict:
+    """Respuesta estándar para cónicas sin elementos calculables."""
     return {"valid": False, "reason": reason, "fields": [], "values": {}}
 
 
+# ── Elementos por tipo de cónica ───────────────────────────────────────────
+
 def _circle_elements(td: dict) -> dict:
+    """Devuelve centro y radio de una circunferencia."""
     center = td.get("center")
     radius = td.get("radius")
 
@@ -74,9 +84,10 @@ def _circle_elements(td: dict) -> dict:
 
 
 def _ellipse_elements(td: dict) -> dict:
+    """Devuelve centro, vértices, co-vértices y semiejes de una elipse."""
     center = td.get("center")
-    a = td.get("a")
-    b = td.get("b")
+    a = td.get("a")  # semieje mayor
+    b = td.get("b")  # semieje menor
 
     if center is None or a is None or b is None:
         return {}
@@ -102,9 +113,10 @@ def _ellipse_elements(td: dict) -> dict:
 
 
 def _hyperbola_elements(td: dict) -> dict:
+    """Devuelve centro, vértices y semiejes de una hipérbola."""
     center = td.get("center")
-    a = td.get("a")
-    b = td.get("b")
+    a = td.get("a")  # semieje transversal
+    b = td.get("b")  # semieje conjugado
 
     if center is None or a is None or b is None:
         return {}
@@ -127,8 +139,9 @@ def _hyperbola_elements(td: dict) -> dict:
 
 
 def _parabola_elements(td: dict) -> dict:
+    """Devuelve vértice, foco, directriz y orientación de una parábola."""
     vertex = td.get("vertex")
-    p = td.get("p")
+    p = td.get("p")  # distancia del vértice al foco y a la directriz
 
     if vertex is None or p is None:
         return {}
@@ -151,7 +164,10 @@ def _parabola_elements(td: dict) -> dict:
     }
 
 
+# ── Orientación y formato ─────────────────────────────────────────────────
+
 def get_ellipse_orientation(td: dict) -> str:
+    """Determina si el eje mayor de la elipse es horizontal o vertical."""
     if not isinstance(td, dict):
         return "horizontal"
 
@@ -165,6 +181,7 @@ def get_ellipse_orientation(td: dict) -> str:
 
 
 def _fmt_number(value, digits=2) -> str:
+    """Formatea números para evitar decimales innecesarios."""
     if value is None:
         return "—"
 
@@ -180,8 +197,10 @@ def _fmt_number(value, digits=2) -> str:
 
 
 def _fmt_coord(pair) -> str:
+    """Formatea un punto como (x, y)."""
     return f"({_fmt_number(pair[0])}, {_fmt_number(pair[1])})"
 
 
 def _fmt_points(points) -> str:
+    """Formatea una lista de puntos."""
     return " ; ".join(_fmt_coord(point) for point in points)

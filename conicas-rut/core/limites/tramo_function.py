@@ -1,7 +1,10 @@
 # conicas-rut/core/limites/tramo_function.py
 
 
+# ── Lectura de dígitos del RUT ─────────────────────────────────────────────
+
 def _extraer_digitos(rut_data: dict) -> dict:
+    """Obtiene los dígitos d1...d8 desde el resultado de validación del RUT."""
     if not isinstance(rut_data, dict):
         raise ValueError("Datos de RUT inválidos para construir la función por tramos.")
 
@@ -16,18 +19,14 @@ def _extraer_digitos(rut_data: dict) -> dict:
     raise ValueError("No se encontraron los dígitos nombrados del RUT.")
 
 
+# ── Generación de función por tramos ───────────────────────────────────────
+# Regla principal:
+# d8 mod 3 = 0 → discontinuidad removible
+# d8 mod 3 = 1 → discontinuidad de salto
+# d8 mod 3 = 2 → discontinuidad infinita
+
 def CrearVariables(rut_data):
-    """
-    Construye la función por tramos a partir de los dígitos del RUT.
-
-    Regla:
-        d8 mod 3 = 0 -> discontinuidad removible
-        d8 mod 3 = 1 -> discontinuidad de salto
-        d8 mod 3 = 2 -> discontinuidad infinita
-
-    Punto crítico:
-        a = d3
-    """
+    """Genera la función, su tipo de discontinuidad y los datos para graficarla."""
     digitos = _extraer_digitos(rut_data)
 
     d1 = digitos["d1"]
@@ -37,8 +36,8 @@ def CrearVariables(rut_data):
     d5 = digitos["d5"]
     d8 = digitos["d8"]
 
-    a = d3
-    residuo = d8 % 3
+    a = d3               # punto crítico donde se estudian límites y continuidad
+    residuo = d8 % 3     # regla que define el tipo de discontinuidad
 
     pasos = [
         f"Punto crítico a determinado por d3 = {a}.",
@@ -47,6 +46,9 @@ def CrearVariables(rut_data):
             f"residuo d8 mod 3 = {residuo}."
         ),
     ]
+
+    # ── Caso 1: discontinuidad removible ───────────────────────────────────
+    # f(x) tiene un factor cancelable, pero f(a) no está definida.
 
     if residuo == 0:
         limite = a + d1
@@ -66,13 +68,13 @@ def CrearVariables(rut_data):
 
         funcion_tramos = [
             {
-                "func": funcion_removible,
-                "x_min": a - 6,
-                "x_max": a + 6,
+                "func": funcion_removible,          # función simplificada para graficar
+                "x_min": a - 6,                    # inicio del tramo visible
+                "x_max": a + 6,                    # fin del tramo visible
                 "color": None,
-                "discontinuity_type": "removable",
-                "hole_x": a,
-                "hole_y": limite,
+                "discontinuity_type": "removable", # indica hueco en la gráfica
+                "hole_x": a,                       # coordenada x del hueco
+                "hole_y": limite,                  # coordenada y del hueco
             }
         ]
 
@@ -95,6 +97,9 @@ def CrearVariables(rut_data):
             f"lím(x→{a}) f(x) = {a} + {d1} = {limite}.",
         ])
 
+    # ── Caso 2: discontinuidad de salto ────────────────────────────────────
+    # Los tramos izquierdo y derecho tienen valores límite distintos.
+
     elif residuo == 1:
         lim_izq = a + d2
         lim_der = a + d4
@@ -115,22 +120,22 @@ def CrearVariables(rut_data):
 
         funcion_tramos = [
             {
-                "func": funcion_salto_izquierda,
+                "func": funcion_salto_izquierda,   # tramo usado para x < a
                 "x_min": a - 6,
                 "x_max": a,
                 "color": None,
                 "discontinuity_type": None,
-                "open_right": True,
-                "endpoint_y": lim_izq,
+                "open_right": True,                # punto abierto en x = a
+                "endpoint_y": lim_izq,             # valor lateral izquierdo
             },
             {
-                "func": funcion_salto_derecha,
+                "func": funcion_salto_derecha,     # tramo usado para x ≥ a
                 "x_min": a,
                 "x_max": a + 6,
                 "color": None,
                 "discontinuity_type": None,
-                "closed_left": True,
-                "endpoint_y": lim_der,
+                "closed_left": True,               # punto cerrado en x = a
+                "endpoint_y": lim_der,             # valor lateral derecho
             },
         ]
 
@@ -160,6 +165,9 @@ def CrearVariables(rut_data):
                 f"Como {lim_izq} = {lim_der}, el límite bilateral existe y vale {lim_izq}."
             )
 
+    # ── Caso 3: discontinuidad infinita ────────────────────────────────────
+    # El denominador se anula en x = a y se produce una asíntota vertical.
+
     else:
         numerador = d5 + 1
 
@@ -178,15 +186,15 @@ def CrearVariables(rut_data):
 
         funcion_tramos = [
             {
-                "func": funcion_infinita,
+                "func": funcion_infinita,          # rama izquierda de la función
                 "x_min": a - 6,
                 "x_max": a - 0.01,
                 "color": None,
-                "discontinuity_type": "infinite",
-                "asymptote_x": a,
+                "discontinuity_type": "infinite", # marca asíntota vertical
+                "asymptote_x": a,                 # recta x = a
             },
             {
-                "func": funcion_infinita,
+                "func": funcion_infinita,          # rama derecha de la función
                 "x_min": a + 0.01,
                 "x_max": a + 6,
                 "color": None,
@@ -222,13 +230,13 @@ def CrearVariables(rut_data):
         ])
 
     return {
-        "funcion": funcion,
-        "funcion_tramos": funcion_tramos,
-        "a": a,
-        "tipo_discontinuidad": tipo,
-        "explicacion": explicacion,
-        "digitos": digitos,
-        "pasos_preliminares": pasos,
-        "expr_f1": expr_f1,
-        "expr_f2": expr_f2,
+        "funcion": funcion,                         # función principal evaluable
+        "funcion_tramos": funcion_tramos,           # tramos usados para graficar
+        "a": a,                                     # punto crítico
+        "tipo_discontinuidad": tipo,                # removible, salto o infinita
+        "explicacion": explicacion,                 # explicación resumida para UI
+        "digitos": digitos,                         # dígitos usados en el cálculo
+        "pasos_preliminares": pasos,                # pasos de generación de la función
+        "expr_f1": expr_f1,                         # expresión del primer tramo
+        "expr_f2": expr_f2,                         # expresión del segundo tramo
     }
